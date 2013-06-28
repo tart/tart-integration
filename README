@@ -6,7 +6,8 @@ Usage
 
 ./tart-integration.py
 
-Run the script on the same directory with the configuration files. Configuration files explained below.
+Run the script on the same directory with the configuration files.
+Configuration files explained below.
 
 
 Dependencies
@@ -18,14 +19,16 @@ Dependencies
 API Configuration
 -----------------
 
-Configuration file named api.conf defines API connections. Section names should match the required applications names.
-Currently Jira and PagerDuty supported.
+Configuration file named api.conf defines API connections. Section names
+should match the required applications names. Currently Jira and PagerDuty
+supported.
 
 address             Root address of the RESTful API (required)
 
 username            Username for HTTP basic authentication (optional)
 
-password            Password for HTTP basic authentication (required with username)
+password            Password for HTTP basic authentication
+                    (required with username)
 
 token               Token for HTTP authentication (optional)
 
@@ -33,24 +36,29 @@ token               Token for HTTP authentication (optional)
 Action Configuration
 --------------------
 
-Configuration file named action.conf defines the actions of the script. Section names should match the the action
-names on the source API. Currently the source API is PagerDuty. The actions on PagerDuty are listed as Log Entry
-Types on their API documentation [1].
+Configuration file named action.conf defines the actions of the script.
+Section names should match the the action names on the source API.
+Currently the source API is PagerDuty. The actions on PagerDuty are listed
+as Log Entry Types on their API documentation [1].
 
-Current action configuration will probably fit to your usecase. See the default configuration.
+Current action configuration will probably fit to your usecase. See the
+default configuration.
 
-status              Statuses to filter actions, the actions which are for incidents with a different current state
-                    than the ones in list would not be processed (optional)
+status              Statuses to filter actions, the actions which are for
+                    incidents with a different current state than the ones
+                    in list would not be processed (optional)
 
 link                Action to create issue if not found (default: no)
 
 transition          Transition for the found issues (optional)
 
-link                Action to add application link to the found issues (default: no)
+link                Action to add application link to the found issues
+                    (default: no)
 
 assign              Action to assign the found issues (default: no)
 
-comment             Action to add comment to the found issues, comments will be added with transitions independently
+comment             Action to add comment to the found issues, comments
+                    will be added with transitions independently
                     (default: no)
 
 [1] http://developer.pagerduty.com/documentation/rest/log_entries/show
@@ -59,8 +67,8 @@ comment             Action to add comment to the found issues, comments will be 
 Service Configuration
 ---------------------
 
-Configuration file named service.conf defines the relation of services. Section names should match the the service
-names on the source API. 
+Configuration file named service.conf defines the relation of services.
+Section names should match the the service names on the source API. 
 
 project             Key of the project for the issues (required)
 
@@ -70,8 +78,9 @@ type                Name of the issue type for the issues (required)
 License
 -------
 
-This tool is released under the ISC License, whose text is included to the source file. The ISC License is registered
-with and approved by the Open Source Initiative [1].
+This tool is released under the ISC License, whose text is included to the
+source file. The ISC License is registered with and approved by the
+Open Source Initiative [1].
 
 [1] http://opensource.org/licenses/isc-license.txt
 
