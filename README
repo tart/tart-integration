@@ -4,7 +4,7 @@ Currently only PagerDuty to Jira integration supported.
 Usage
 -----
 
-./tart-integration.py
+$ python3.2 pagerDutyToJira.py
 
 Run the script on the same directory with the configuration files.
 Configuration files explained below.
