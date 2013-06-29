@@ -17,23 +17,13 @@
 
 import json
 
-def log(function):
-    def call(instance, *arguments, **parameters):
-        body = function.__name__
-        if arguments:
-            body += '; ' + ', '.join(str(argument) for argument in arguments)
-        if parameters:
-            body += '; ' + ', '.join(key + ': ' + str(value) for key, value in parameters.items())
-        print(body)
-        return function(instance, *arguments, **parameters)
-    return call
-
 class JSONAPI:
-    def __init__(self, address, username = None, password = None, token = None):
+    def __init__(self, address, username = None, password = None, token = None, log = False):
         self.__address = address
         self.__username = username
         self.__password = password
         self.__token = token
+        self.__log = log
 
     def __encodeParameters(self, **parameters):
         from urllib.parse import quote_plus
@@ -67,21 +57,23 @@ class JSONAPI:
         return request
 
     def __makeRequest(self, request):
+        if self.__log:
+            print(request.get_method(), end = ' ')
+            print(request.get_selector(), end = ' ')
         from urllib.request import urlopen
         with urlopen(request) as response:
+            if self.__log:
+                print(response.getcode())
             try:
                 return json.loads(response.readall().decode('utf-8'))
             except ValueError: pass
 
-    @log
     def get(self, *arguments, **parameters):
         return self.__makeRequest(self.__request(*arguments, **parameters))
 
-    @log
     def post(self, *arguments, **parameters):
         return self.__makeRequest(self.__requestWithData(*arguments, **parameters))
 
-    @log
     def put(self, *arguments, **parameters):
         request = self.__requestWithData(*arguments, **parameters)
         request.get_method = lambda: 'PUT'

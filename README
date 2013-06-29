@@ -32,6 +32,8 @@ password            Password for HTTP basic authentication
 
 token               Token for HTTP authentication (optional)
 
+log                 Log the requests to the API (default: no)
+
 
 Action Configuration
 --------------------
