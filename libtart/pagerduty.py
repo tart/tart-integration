@@ -25,6 +25,7 @@ class Incident(dict):
         if 'trigger_summary_data' in self:
             summary = self['trigger_summary_data']
             if 'subject' in summary and summary['subject']:
+                import re
                 issueKeys = re.findall('\([A-Z]{3,6}-[0-9]{1,6}\)', summary['subject'])
                 if issueKeys:
                     return issueKeys[0][1:-1]

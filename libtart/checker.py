@@ -15,7 +15,7 @@
 # performance of this software.
 ##
 
-from .jira import JiraClient
+from .jira import JiraClient, Issue
 from .pagerduty import PagerDutyClient
 from .configuration import ConfigParser
 from .database import SingleUserDatabase
