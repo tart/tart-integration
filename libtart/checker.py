@@ -36,36 +36,43 @@ class PagerDutyToJira:
 
     def __process(self, logEntry):
         '''Process incidents with the log entry and the incident related to the log entry.'''
+        if not self.__serviceConfig.has_section(logEntry['service']['name']):
+            return
+
+        if not self.__actionConfig.has_section(logEntry['type']):
+            return
+
         incident = logEntry.incident()
         issue = self.__issue(incident)
 
-        if not self.__actionConfig.filter(logEntry['type'], 'status', incident['status']):
-            if not issue:
-                if self.__actionConfig.check(logEntry['type'], 'create'):
-                    if self.__serviceConfig.has_section(logEntry['service']['name']):
-                        projectKey = self.__serviceConfig.get(logEntry['service']['name'], 'project')
-                        issueTypeName = self.__serviceConfig.get(logEntry['service']['name'], 'type')
-                        self.__jira.createIssue(project = {'key': projectKey},
-                                                issuetype = self.__jira.issueType(issueTypeName),
-                                                summary = incident.summary(),
-                                                description = logEntry.description())
-            else:
-                if self.__actionConfig.has_option(logEntry['type'], 'transition'):
-                    transition = self.__jira.transition(issue, self.__actionConfig.get(logEntry['type'], 'transition'))
-                    if transition:
-                        self.__jira.transit(issue, transition, logEntry.comment())
+        if self.__actionConfig.filter(logEntry['type'], 'status', incident['status']):
+            return
 
-                if self.__actionConfig.check(logEntry['type'], 'assign'):
-                    self.__jira.updateAssignee(issue, logEntry.username('assigned_user'))
+        if not issue:
+            if self.__actionConfig.check(logEntry['type'], 'create'):
+                projectKey = self.__serviceConfig.get(logEntry['service']['name'], 'project')
+                issueTypeName = self.__serviceConfig.get(logEntry['service']['name'], 'type')
+                self.__jira.createIssue(project = {'key': projectKey},
+                                        issuetype = self.__jira.issueType(issueTypeName),
+                                        summary = incident.summary(),
+                                        description = logEntry.description())
+        else:
+            if self.__actionConfig.has_option(logEntry['type'], 'transition'):
+                transition = self.__jira.transition(issue, self.__actionConfig.get(logEntry['type'], 'transition'))
+                if transition:
+                    self.__jira.transit(issue, transition, logEntry.comment())
 
-                if self.__actionConfig.check(logEntry['type'], 'comment'):
-                    self.__jira.addComment(issue, logEntry.comment())
+            if self.__actionConfig.check(logEntry['type'], 'assign'):
+                self.__jira.updateAssignee(issue, logEntry.username('assigned_user'))
 
-                if self.__actionConfig.check(logEntry['type'], 'link'):
-                    self.__jira.remotelink(issue, str(incident),
-                                           url = incident['html_url'],
-                                           title = 'Incident ' + str(incident),
-                                           status = {'resolved': incident['status'] == 'resolved'})
+            if self.__actionConfig.check(logEntry['type'], 'comment'):
+                self.__jira.addComment(issue, logEntry.comment())
+
+            if self.__actionConfig.check(logEntry['type'], 'link'):
+                self.__jira.remotelink(issue, str(incident),
+                                       url = incident['html_url'],
+                                       title = 'Incident ' + str(incident),
+                                       status = {'resolved': incident['status'] == 'resolved'})
 
     databaseFile = '/tmp/tart-integration'
 
