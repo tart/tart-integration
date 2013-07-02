@@ -28,12 +28,6 @@ class PagerDutyToJira:
         self.__actionConfig = ConfigParser('action.conf')
         self.__serviceConfig = ConfigParser('service.conf')
 
-    def __issue(self, incident):
-        key = incident.issueKey()
-        if key:
-            return Issue({'key': key})
-        return self.__jira.lastIssueBySummary(incident.summary().split(' - ')[0])
-
     def __process(self, logEntry):
         '''Process incidents with the log entry and the incident related to the log entry.'''
         if not self.__serviceConfig.has_section(logEntry['service']['name']):
@@ -43,17 +37,23 @@ class PagerDutyToJira:
             return
 
         incident = logEntry.incident()
-        issue = self.__issue(incident)
+        projectKey = self.__serviceConfig.get(logEntry['service']['name'], 'project')
+        issuetypeName = self.__serviceConfig.get(logEntry['service']['name'], 'type')
 
         if self.__actionConfig.filter(logEntry['type'], 'status', incident['status']):
             return
 
+        if incident.issueKey():
+            issue = Issue({'key': incident.issueKey()})
+        else:
+            issue = self.__jira.searchIssue(incident.summary().split(' - ')[0],
+                                            project = projectKey,
+                                            issuetype = issuetypeName)
+
         if not issue:
             if self.__actionConfig.check(logEntry['type'], 'create'):
-                projectKey = self.__serviceConfig.get(logEntry['service']['name'], 'project')
-                issueTypeName = self.__serviceConfig.get(logEntry['service']['name'], 'type')
                 self.__jira.createIssue(project = {'key': projectKey},
-                                        issuetype = self.__jira.issueType(issueTypeName),
+                                        issuetype = self.__jira.issuetype(issuetypeName),
                                         summary = incident.summary(),
                                         description = logEntry.description())
         else:

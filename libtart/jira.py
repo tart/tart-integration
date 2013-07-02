@@ -26,12 +26,17 @@ class Transition(dict):
         return self['name']
 
 class JiraClient(JSONAPI):
-    def lastIssueBySummary(self, name):
-        '''Search for host name in the issue summaries which are not closed, return the one updated last.'''
-        issues = self.get('search', jql = 'summary~"' + name + '" and status!=Closed order by updatedDate',
-                maxResults = '1', fields= 'key,assignee')['issues']
-        if issues:
-            return Issue(issues[0])
+    def searchIssue(self, name, project = None, issuetype = None):
+        '''Search for name in the issue summaries which are not closed, return the one updated last.'''
+        jql = 'summary~"' + name + '"'
+        if project:
+            jql += ' and project="' + project + '"'
+        if issuetype:
+            jql += ' and issuetype="' + issuetype + '"'
+        jql += ' and status!=Closed order by updatedDate'
+        result = self.get('search', jql = jql, maxResults = '1', fields= 'key')
+        if result['issues']:
+            return Issue(result['issues'][0])
 
     def transition(self, issue, name):
         for transition in self.get('issue', issue['key'], 'transitions')['transitions']:
@@ -42,10 +47,10 @@ class JiraClient(JSONAPI):
         return self.post('issue', issue['key'], 'transitions', transition = transition,
                         update = {'comment': [{'add': {'body': commentBody}}]})
 
-    def issueType(self, name):
-        for issueType in self.get('issuetype'):
-            if name == issueType['name']:
-                return issueType
+    def issuetype(self, name):
+        for issuetype in self.get('issuetype'):
+            if name == issuetype['name']:
+                return issuetype
 
     def createIssue(self, **fields):
         return self.post('issue', fields = fields)
