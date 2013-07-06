@@ -4,10 +4,16 @@ Currently only PagerDuty to Jira integration supported.
 Usage
 -----
 
+$ ./pagerDutyToJira.py
+
 $ python3.2 pagerDutyToJira.py
 
-Run the script on the same directory with the configuration files.
-Configuration files explained below.
+The script must be run on the same directory with the configuration
+files. Configuration files explained below.
+
+It can be added to crontab like this:
+
+$ cd tart-integration && ./pagerDutyToJira.py
 
 
 Dependencies
