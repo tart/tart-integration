@@ -18,12 +18,12 @@
 import json
 
 class JSONAPI:
-    def __init__(self, address, username = None, password = None, token = None, log = False):
+    def __init__(self, address, username = None, password = None, token = None, syslog = False):
         self.__address = address
         self.__username = username
         self.__password = password
         self.__token = token
-        self.__log = log
+        self.__syslog = syslog
 
     def __encodeParameters(self, **parameters):
         from urllib.parse import quote_plus
@@ -57,13 +57,20 @@ class JSONAPI:
         return request
 
     def __makeRequest(self, request):
-        if self.__log:
-            print(request.get_method(), end = ' ')
-            print(request.get_selector(), end = ' ')
         from urllib.request import urlopen
-        with urlopen(request) as response:
-            if self.__log:
-                print(response.getcode())
+        from urllib.error import HTTPError
+
+        try:
+            response = urlopen(request)
+        except HTTPError as error:
+            response = error
+            raise
+        finally:
+            if self.__syslog:
+                from syslog import syslog
+                syslog(request.get_method() + ' ' + request.get_full_url() + ' ' + str(response.getcode()))
+
+        with response:
             try:
                 return json.loads(response.readall().decode('utf-8'))
             except ValueError: pass
