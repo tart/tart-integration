@@ -29,6 +29,28 @@ class PagerDutyToJira:
         self.__serviceConfig = ConfigParser('service.conf')
         self.__userConfig = ConfigParser('user.conf')
 
+    def __issue(self, projectKey, issuetypeName, summary):
+        '''Search by the hostname:'''
+        if 'HOSTNAME' in summary and summary['HOSTNAME']:
+            return self.__jira.searchIssue(summary['HOSTNAME'], projectKey, issuetypeName)
+
+        '''Search by the issue key on the subject:
+        It is usefull for incidents created by Jira emails.'''
+        import re
+        issueKeys = re.findall('\([A-Z]{3,6}-[0-9]{1,6}\)', summary['subject'])
+        if issueKeys:
+            return Issue({'key': issueKeys[0][1:-1]})
+
+        '''Search by the subject:'''
+        return self.__jira.searchIssue(summary['subject'], projectKey, issuetypeName)
+
+    def __issueSummary(self, summary):
+        if 'SERVICESTATE' in summary and summary['SERVICESTATE']:
+            return summary['HOSTNAME'] + ' ' + summary['SERVICEDESC'] + ' ' + summary['SERVICESTATE']
+        if 'HOSTSTATE' in summary and summary['HOSTSTATE']:
+            return summary['HOSTNAME'] + ' ' + summary['HOSTSTATE']
+        return summary['subject']
+
     def __username(self, email):
         for section in self.__userConfig.sections():
             if self.__userConfig.has_option(section, 'email'):
@@ -131,24 +153,19 @@ class PagerDutyToJira:
             return
 
         incident = logEntry.incident()
-        projectKey = self.__serviceConfig.get(logEntry['service']['name'], 'project')
-        issuetypeName = self.__serviceConfig.get(logEntry['service']['name'], 'type')
 
         if self.__actionConfig.filter(logEntry['type'], 'status', incident['status']):
             return
 
-        if incident.issueKey():
-            issue = Issue({'key': incident.issueKey()})
-        else:
-            issue = self.__jira.searchIssue(incident.summary().split(' - ')[0],
-                                            project = projectKey,
-                                            issuetype = issuetypeName)
+        projectKey = self.__serviceConfig.get(logEntry['service']['name'], 'project')
+        issuetypeName = self.__serviceConfig.get(logEntry['service']['name'], 'type')
+        issue = self.__issue(projectKey, issuetypeName, incident['trigger_summary_data'])
 
         if not issue:
             if self.__actionConfig.check(logEntry['type'], 'create'):
                 self.__jira.createIssue(project = {'key': projectKey},
                                         issuetype = self.__jira.issuetype(issuetypeName),
-                                        summary = incident.summary(),
+                                        summary = self.__issueSummary(incident['trigger_summary_data']),
                                         description = self.__description(logEntry['channel']))
         else:
             if self.__actionConfig.has_option(logEntry['type'], 'transition'):

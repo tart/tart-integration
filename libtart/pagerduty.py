@@ -21,26 +21,6 @@ class Incident(dict):
     def __str__(self):
         return '#' + str(self['incident_number'])
 
-    def issueKey(self):
-        if 'trigger_summary_data' in self:
-            summary = self['trigger_summary_data']
-            if 'subject' in summary and summary['subject']:
-                import re
-                issueKeys = re.findall('\([A-Z]{3,6}-[0-9]{1,6}\)', summary['subject'])
-                if issueKeys:
-                    return issueKeys[0][1:-1]
-
-    def summary(self):
-        if 'trigger_summary_data' in self:
-            summary = self['trigger_summary_data']
-            if 'subject' in summary and summary['subject']:
-                return summary['subject']
-            if 'SERVICESTATE' in summary and summary['SERVICESTATE']:
-                return summary['HOSTNAME'] + ' ' + summary['SERVICEDESC'] + ' ' + summary['SERVICESTATE']
-            if 'HOSTSTATE' in summary and summary['HOSTSTATE']:
-                return summary['HOSTNAME'] + ' ' + summary['HOSTSTATE']
-        return self['incident_key']
-
 class LogEntry(dict):
     def __str__(self):
         return str(self['id'])
