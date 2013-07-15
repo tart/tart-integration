@@ -132,6 +132,8 @@ class PagerDutyToJira:
         if 'notification' in logEntry:
             if 'push_notification' in logEntry['notification']['type']:
                 body += ' via push notification'
+            elif logEntry['notification']['type'] == 'sms':
+                body += ' via SMS'
             else:
                 body += ' via ' + logEntry['notification']['type']
             body += ' at ' + logEntry['notification']['address']
