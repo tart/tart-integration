@@ -91,9 +91,6 @@ class PagerDutyToJira:
         elif 'notification' in logEntry:
             if logEntry['notification']['status'] == 'success':
                 body += ' successfully'
-            elif logEntry['notification']['status'] == 'in_progress':
-                '''Exception raised to buy time.'''
-                raise Exception('Notification in progress.')
             elif logEntry['notification']['status'] != 'no_answer':
                 '''Log entries include only the current status of the notifiations which is not enough to say
                 something for certain.'''
@@ -195,6 +192,9 @@ class PagerDutyToJira:
                 from datetime import datetime
                 database.write(datetime.utcnow().isoformat())
             for logEntry in self.__pagerDuty.logEntries(database.read()):
+                if 'notification' in logEntry and logEntry['notification']['status'] == 'in_progress':
+                    '''Stop progress for now to buy time.'''
+                    break
                 self.__process(logEntry)
                 database.write(logEntry['created_at'])
 
