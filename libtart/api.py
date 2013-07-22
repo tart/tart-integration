@@ -58,11 +58,11 @@ class JSONAPI:
 
     def __makeRequest(self, request):
         from urllib.request import urlopen
-        from urllib.error import HTTPError
+        from urllib.error import URLError
 
         try:
             response = urlopen(request)
-        except HTTPError as error:
+        except URLError as error:
             response = error
             raise
         finally:
