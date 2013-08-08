@@ -1,25 +1,63 @@
 Currently only PagerDuty and Jira integration supported.
 
 
+Dependencies
+------------
+
+* Python 3
+
+
 Usage
 -----
+
+Configure PagerDuty:
+
+* Generate an API key.
+
+* Add the key to the API configuration file explained below.
+
+
+Configure Jira:
+
+* Create an user with required privileges.
+
+* Add the user credentials to the API configuration file explained
+  below.
+
+* Set the time zone to GTM from the user preferences, if you like
+  issues to be updated properly.
+
+
+Configure Jira to trigger incidents (optional):
+
+* Create a generic email system service on the PagerDuty.
+
+* Give the same email address to the user on the Jira.
+
+* Add the service to the service configuration explained below.
+
+* Set the Jira email type to plain text on the user preferences.
+
+* Make sure "Do not notify me" choosed for "My changes" option
+  on the user preferences to avoid recursion.
+
+* Add email filters to the service to match the project name,
+  the issue type and the assignee.
+
+
+Execute the script:
 
 $ ./integrate.py
 
 $ python3.2 integrate.py
 
 The script must be run on the same directory with the configuration
-files. Configuration files explained below.
+files.
 
-It can be added to crontab like this:
+
+Add it to the cron like this:
 
 $ cd tart-integration && ./integrate.py
-
-
-Dependencies
-------------
-
-* Python 3
 
 
 API Configuration
