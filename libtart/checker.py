@@ -86,7 +86,8 @@ class PagerDutyJira:
                 self.__jira.createIssue(project = {'key': projectKey},
                                         issuetype = self.__jira.issuetype(issuetypeName),
                                         summary = self.__issueSummary(incident['trigger_summary_data']),
-                                        description = self.__description(logEntry['channel']))
+                                        description = self.__description(logEntry['channel']),
+                                        assignee = {'name': self.__usernameFromEmail(incident['assigned_to_user']['email'])})
         else:
             if self.__actionConfig.has_option(logEntry['type'], 'transition'):
                 transition = issue.transition(self.__actionConfig.get(logEntry['type'], 'transition'))
