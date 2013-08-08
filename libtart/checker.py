@@ -20,7 +20,7 @@ from .pagerduty import PagerDutyClient
 from .configuration import ConfigParser
 from .database import SingleUserDatabase
 
-class PagerDutyToJira:
+class PagerDutyJira:
     def __init__(self):
         config = ConfigParser('api.conf')
         self.__jira = JiraClient(**dict(config.items('Jira')))
@@ -29,20 +29,95 @@ class PagerDutyToJira:
         self.__serviceConfig = ConfigParser('service.conf')
         self.__userConfig = ConfigParser('user.conf')
 
-    def __issue(self, projectKey, issuetypeName, summary):
+    databaseFile = '/tmp/tart-integration'
+
+    def check(self):
+        with SingleUserDatabase(self.databaseFile) as database:
+            if not database.read():
+                from datetime import datetime
+                database.write(datetime.utcnow().isoformat())
+            since = database.read()
+
+            for logEntry in self.__pagerDuty.logEntries(since):
+                if 'notification' in logEntry and logEntry['notification']['status'] == 'in_progress':
+                    '''Stop progress for now to buy time.'''
+                    break
+                self.__processLogEntry(logEntry)
+                database.write(logEntry['created_at'])
+
+            self.__checkUpdatedIssues(since)
+
+    def __checkUpdatedIssues(self, since):
+        incidents = []
+
+        for service in self.__serviceConfig.sections():
+            projectKey = self.__serviceConfig.get(service, 'project')
+            issuetypeName = self.__serviceConfig.get(service, 'type')
+
+            for issue in self.__jira.updatedIssues(projectKey, issuetypeName, since):
+                for remotelink in issue.remotelinks():
+                    for action in self.__actionConfig.sections():
+                        if self.__actionConfig.filter(action, 'issuestatus', issue['fields']['status']['name']):
+                            incidents.append({'id': remotelink['globalId'],
+                                              'status': self.__actionConfig.get(action, 'status')})
+
+        if incidents:
+            self.__pagerDuty.putIncidents(incidents = incidents)
+
+    def __processLogEntry(self, logEntry):
+        '''Process incidents with the log entry and the incident related to the log entry.'''
+        if not self.__serviceConfig.has_section(logEntry['service']['name']):
+            return
+
+        if not self.__actionConfig.has_section(logEntry['type']):
+            return
+
+        incident = logEntry.incident()
+
+        if not self.__actionConfig.filter(logEntry['type'], 'status', incident['status']):
+            return
+
+        projectKey = self.__serviceConfig.get(logEntry['service']['name'], 'project')
+        issuetypeName = self.__serviceConfig.get(logEntry['service']['name'], 'type')
+        issue = self.__findIssue(projectKey, issuetypeName, incident['trigger_summary_data'])
+
+        if not issue:
+            if self.__actionConfig.check(logEntry['type'], 'create'):
+                self.__jira.createIssue(project = {'key': projectKey},
+                                        issuetype = self.__jira.issuetype(issuetypeName),
+                                        summary = self.__issueSummary(incident['trigger_summary_data']),
+                                        description = self.__description(logEntry['channel']))
+        else:
+            if self.__actionConfig.has_option(logEntry['type'], 'transition'):
+                transition = issue.transition(self.__actionConfig.get(logEntry['type'], 'transition'))
+                if transition:
+                    issue.transit(transition, self.__generateComment(logEntry))
+
+            if self.__actionConfig.check(logEntry['type'], 'assign'):
+                issue.updateAssignee(self.__usernameFromEmail(logEntry['assigned_user']['email']))
+
+            if self.__actionConfig.check(logEntry['type'], 'comment'):
+                issue.addComment(self.__generateComment(logEntry))
+
+            if self.__actionConfig.check(logEntry['type'], 'link'):
+                issue.addRemotelink(str(incident), url = incident['html_url'],
+                                    title = 'Incident #' + str(incident['incident_number']),
+                                    status = {'resolved': incident['status'] == 'resolved'})
+
+    def __findIssue(self, projectKey, issuetypeName, summary):
         '''Search by the hostname:'''
         if 'HOSTNAME' in summary and summary['HOSTNAME']:
-            return self.__jira.searchIssue(summary['HOSTNAME'], projectKey, issuetypeName)
+            return self.__jira.searchIssue(projectKey, issuetypeName, summary['HOSTNAME'])
 
-        '''Search by the issue key on the subject:
-        It is usefull for incidents created by Jira emails.'''
+        '''Search by the issue key on the subject:'''
+        '''It is usefull for incidents created by Jira emails.'''
         import re
         issueKeys = re.findall('\([A-Z]{3,6}-[0-9]{1,6}\)', summary['subject'])
         if issueKeys:
-            return Issue({'key': issueKeys[0][1:-1]})
+            return Issue(self.__jira, {'key': issueKeys[0][1:-1]})
 
         '''Search by the subject:'''
-        return self.__jira.searchIssue(summary['subject'], projectKey, issuetypeName)
+        return self.__jira.searchIssue(projectKey, issuetypeName, summary['subject'])
 
     def __issueSummary(self, summary):
         if 'SERVICESTATE' in summary and summary['SERVICESTATE']:
@@ -51,7 +126,7 @@ class PagerDutyToJira:
             return summary['HOSTNAME'] + ' ' + summary['HOSTSTATE']
         return summary['subject']
 
-    def __username(self, email):
+    def __usernameFromEmail(self, email):
         for section in self.__userConfig.sections():
             if self.__userConfig.has_option(section, 'email'):
                 if self.__userConfig.get(section, 'email') == email:
@@ -75,10 +150,10 @@ class PagerDutyToJira:
                 body += 'Note: ' + channel['details']['HOSTNOTES'] + '\n'
         return body
 
-    def __comment(self, logEntry):
+    def __generateComment(self, logEntry):
         '''Subject:'''
         if logEntry['type'] == 'notify':
-            body = '[~' + self.__username(logEntry['user']['email']) + ']'
+            body = '[~' + self.__usernameFromEmail(logEntry['user']['email']) + ']'
         else:
             body = 'Incident ' + str(logEntry.incident())
 
@@ -114,7 +189,7 @@ class PagerDutyToJira:
         '''Prepositional Phrase:'''
         if 'agent' in logEntry:
             if logEntry['agent']['type'] == 'user':
-                body += ' by [~' + self.__username(logEntry['agent']['email']) + ']'
+                body += ' by [~' + self.__usernameFromEmail(logEntry['agent']['email']) + ']'
         if 'channel' in logEntry:
             if logEntry['channel']['type'] == 'timeout':
                 body += ' due to timeout'
@@ -137,64 +212,9 @@ class PagerDutyToJira:
             if logEntry['notification']['status'] == 'no_answer':
                     body += ' but nobody answered'
         if 'assigned_user' in logEntry:
-            body += ' to [~' + self.__username(logEntry['assigned_user']['email']) + ']'
+            body += ' to [~' + self.__usernameFromEmail(logEntry['assigned_user']['email']) + ']'
         if 'note' in logEntry and logEntry['note']:
             body += ' with note: ' + logEntry['note']
 
         return body + '.'
-
-    def __process(self, logEntry):
-        '''Process incidents with the log entry and the incident related to the log entry.'''
-        if not self.__serviceConfig.has_section(logEntry['service']['name']):
-            return
-
-        if not self.__actionConfig.has_section(logEntry['type']):
-            return
-
-        incident = logEntry.incident()
-
-        if self.__actionConfig.filter(logEntry['type'], 'status', incident['status']):
-            return
-
-        projectKey = self.__serviceConfig.get(logEntry['service']['name'], 'project')
-        issuetypeName = self.__serviceConfig.get(logEntry['service']['name'], 'type')
-        issue = self.__issue(projectKey, issuetypeName, incident['trigger_summary_data'])
-
-        if not issue:
-            if self.__actionConfig.check(logEntry['type'], 'create'):
-                self.__jira.createIssue(project = {'key': projectKey},
-                                        issuetype = self.__jira.issuetype(issuetypeName),
-                                        summary = self.__issueSummary(incident['trigger_summary_data']),
-                                        description = self.__description(logEntry['channel']))
-        else:
-            if self.__actionConfig.has_option(logEntry['type'], 'transition'):
-                transition = self.__jira.transition(issue, self.__actionConfig.get(logEntry['type'], 'transition'))
-                if transition:
-                    self.__jira.transit(issue, transition, self.__comment(logEntry))
-
-            if self.__actionConfig.check(logEntry['type'], 'assign'):
-                self.__jira.updateAssignee(issue, self.__username(logEntry['assigned_user']['email']))
-
-            if self.__actionConfig.check(logEntry['type'], 'comment'):
-                self.__jira.addComment(issue, self.__comment(logEntry))
-
-            if self.__actionConfig.check(logEntry['type'], 'link'):
-                self.__jira.remotelink(issue, str(incident),
-                                       url = incident['html_url'],
-                                       title = 'Incident ' + str(incident),
-                                       status = {'resolved': incident['status'] == 'resolved'})
-
-    databaseFile = '/tmp/tart-integration'
-
-    def check(self):
-        with SingleUserDatabase(self.databaseFile) as database:
-            if not database.read():
-                from datetime import datetime
-                database.write(datetime.utcnow().isoformat())
-            for logEntry in self.__pagerDuty.logEntries(database.read()):
-                if 'notification' in logEntry and logEntry['notification']['status'] == 'in_progress':
-                    '''Stop progress for now to buy time.'''
-                    break
-                self.__process(logEntry)
-                database.write(logEntry['created_at'])
 

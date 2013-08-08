@@ -28,5 +28,5 @@ class ConfigParser(configparser.SafeConfigParser):
 
     def filter(self, section, option, item):
         if self.has_option(section, option):
-            return item not in (value.strip() for value in self.get(section, option).split(','))
+            return item in (value.strip() for value in self.get(section, option).split(','))
 

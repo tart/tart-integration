@@ -1,19 +1,19 @@
-Currently only PagerDuty to Jira integration supported.
+Currently only PagerDuty and Jira integration supported.
 
 
 Usage
 -----
 
-$ ./pagerDutyToJira.py
+$ ./integrate.py
 
-$ python3.2 pagerDutyToJira.py
+$ python3.2 integrate.py
 
 The script must be run on the same directory with the configuration
 files. Configuration files explained below.
 
 It can be added to crontab like this:
 
-$ cd tart-integration && ./pagerDutyToJira.py
+$ cd tart-integration && ./integrate.py
 
 
 Dependencies
@@ -52,15 +52,20 @@ as Log Entry Types on their API documentation [1].
 Current action configuration will probably fit to your usecase. See the
 default configuration.
 
-status              Statuses to filter actions, the actions which are for
-                    incidents with a different current state than the ones
-                    in list would not be processed (optional)
+status              Incident status or statuses to filter actions,
+                    incidents with a different current status than
+                    the ones in list would not be processed (optional),
+                    incidents will be updated by this field so it is
+                    required with "issuestatus"
 
 link                Action to create issue if not found (default: no)
 
 transition          Transition for the found issues (optional)
 
-link                Action to add application link to the found issues
+link                Action to add application link to the found issues,
+                    issue links are used to find incidents, incidents
+                    will be updated if they can be found so it is
+                    is required to this on the "trigger" action
                     (default: no)
 
 assign              Action to assign the found issues (default: no)
@@ -68,6 +73,11 @@ assign              Action to assign the found issues (default: no)
 comment             Action to add comment to the found issues, comments
                     will be added with transitions independently
                     (default: no)
+
+issuestatus         Issue status or statuses to update the incidents,
+                    it will only work for "acknowledge" and "resolve"
+                    actions as they are the only actions on
+                    the PagerDuty (optional)
 
 [1] http://developer.pagerduty.com/documentation/rest/log_entries/show
 

@@ -17,35 +17,18 @@
 
 from .api import JSONAPI
 
-class Issue(dict):
-    def __str__(self):
-        return self['key']
-
-class Transition(dict):
-    def __str__(self):
-        return self['name']
-
 class JiraClient(JSONAPI):
-    def searchIssue(self, name, project = None, issuetype = None):
+    def searchIssue(self, project, issuetype, summary):
         '''Search for name in the issue summaries which are not closed, return the one updated last.'''
-        jql = 'summary~"' + name + '"'
-        if project:
-            jql += ' and project="' + project + '"'
-        if issuetype:
-            jql += ' and issuetype="' + issuetype + '"'
-        jql += ' and status!=Closed order by updatedDate'
-        result = self.get('search', jql = jql, maxResults = '1', fields= 'key')
+        result = self.get('search', jql = 'project = "' + project + '" and issuetype = "' + issuetype + '" and ' +
+                'summary ~ "' + summary + '" and status != Closed order by updatedDate', maxResults = '1', fields= 'key')
         if result['issues']:
-            return Issue(result['issues'][0])
+            return Issue(self, result['issues'][0])
 
-    def transition(self, issue, name):
-        for transition in self.get('issue', issue['key'], 'transitions')['transitions']:
-            if transition['name'] == name:
-                return Transition(transition)
-
-    def transit(self, issue, transition, commentBody):
-        return self.post('issue', issue['key'], 'transitions', transition = transition,
-                        update = {'comment': [{'add': {'body': commentBody}}]})
+    def updatedIssues(self, project, issuetype, since):
+        result = self.get('search', jql = 'project = "' + project + '" and issuetype = "' + issuetype + '" and ' +
+                'updatedDate > "' + since + '" order by updatedDate asc', fields= 'key,status')
+        return (Issue(self, r) for r in result['issues'])
 
     def issuetype(self, name):
         for issuetype in self.get('issuetype'):
@@ -55,12 +38,37 @@ class JiraClient(JSONAPI):
     def createIssue(self, **fields):
         return self.post('issue', fields = fields)
 
-    def remotelink(self, issue, globalId, **parameters):
-        return self.post('issue', issue['key'], 'remotelink', globalId = globalId, object = parameters)
+class Issue(dict):
+    def __init__(self, jiraClient, properties):
+        self.__jiraClient = jiraClient
+        dict.__init__(self, properties)
 
-    def addComment(self, issue, body):
-        return self.post('issue', issue['key'], 'comment', body = body)
+    def __str__(self):
+        return self['key']
 
-    def updateAssignee(self, issue, name):
-        return self.put('issue', issue['key'], 'assignee', name = name)
+    def remotelinks(self):
+        return self.__jiraClient.get('issue', self['key'], 'remotelink')
+
+    def transition(self, name):
+        for transition in self.__jiraClient.get('issue', self['key'], 'transitions')['transitions']:
+            if transition['name'] == name:
+                return Transition(transition)
+
+    def transit(self, transition, commentBody):
+        return self.__jiraClient.post('issue', self['key'], 'transitions', transition = transition,
+                        update = {'comment': [{'add': {'body': commentBody}}]})
+
+    def addRemotelink(self, globalId, **parameters):
+        return self.__jiraClient.post('issue', self['key'], 'remotelink', globalId = globalId, object = parameters)
+
+    def addComment(self, body):
+        return self.__jiraClient.post('issue', self['key'], 'comment', body = body)
+
+    def updateAssignee(self, name):
+        return self.__jiraClient.put('issue', self['key'], 'assignee', name = name)
+
+class Transition(dict):
+    def __str__(self):
+        return self['name']
+
 
