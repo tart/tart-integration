@@ -156,7 +156,7 @@ class PagerDutyJira:
         if logEntry['type'] == 'notify':
             body = '[~' + self.__usernameFromEmail(logEntry['user']['email']) + ']'
         else:
-            body = 'Incident ' + str(logEntry.incident())
+            body = 'Incident #' + str(logEntry.incident()['incident_number'])
 
         '''Auxiliary:'''
         body += ' has'
