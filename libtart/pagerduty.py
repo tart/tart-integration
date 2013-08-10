@@ -34,6 +34,9 @@ class PagerDutyClient(JSONAPI):
         logEntries = self.get('log_entries', since=since, include=['incident', 'channel', 'service'])['log_entries']
         return (LogEntry(item) for item in reversed(logEntries) if item['created_at'] > since)
 
+    def getIncitent(self, incidentId):
+        return Incident(self.get('incidents', incidentId))
+
     def putIncidents(self, **parameters):
         return self.put('incidents', **parameters)
 

@@ -48,17 +48,20 @@ class PagerDutyJira:
             self.__checkUpdatedIssues(since)
 
     def __checkUpdatedIssues(self, since):
-        incidents = []
+        incidentsToUpdate = []
 
         for issue in self.__jira.updatedIssues(self.__serviceConfig.sectionValues('project', 'type'), since):
             for remotelink in issue.remotelinks():
                 for action in self.__actionConfig.sections():
                     if self.__actionConfig.filter(action, 'issuestatus', issue['fields']['status']['name']):
-                        incidents.append({'id': remotelink['globalId'],
-                                          'status': self.__actionConfig.get(action, 'status')})
+                        status = self.__actionConfig.get(action, 'status')
+                        incident = self.__pagerDuty.getIncident(remotelink['globalId'])
 
-        if incidents:
-            self.__pagerDuty.putIncidents(incidents = incidents)
+                        if incident['status'] not in (status, 'resolved'):
+                            incidentsToUpdate.append({'id': incident['id'], 'status': status})
+
+        if incidentsToUpdate:
+            self.__pagerDuty.putIncidents(incidents = incidentsToUpdate)
 
     def __processLogEntry(self, logEntry):
         '''Process incidents with the log entry and the incident related to the log entry.'''
