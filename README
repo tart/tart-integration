@@ -12,9 +12,10 @@ Usage
 
 Configure PagerDuty:
 
-* Generate an API key.
+* Generate an API key or create an user if you like incidents to
+  be updated.
 
-* Add the key to the API configuration file explained below.
+* Modify the API configuration file explained below.
 
 
 Configure Jira:
@@ -28,7 +29,7 @@ Configure Jira:
   issues to be updated properly.
 
 
-Configure Jira to trigger incidents (optional):
+Configure Jira to trigger incidents with email (optional):
 
 * Create a generic email system service on the PagerDuty.
 
