@@ -30,3 +30,6 @@ class ConfigParser(configparser.SafeConfigParser):
         if self.has_option(section, option):
             return item in (value.strip() for value in self.get(section, option).split(','))
 
+    def sectionValues(self, *keys):
+        return ((self.get(section, key) for key in keys) for section in self.sections())
+

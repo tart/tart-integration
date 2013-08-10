@@ -25,10 +25,12 @@ class JiraClient(JSONAPI):
         if result['issues']:
             return Issue(self, result['issues'][0])
 
-    def updatedIssues(self, project, issuetype, since):
-        result = self.get('search', jql = 'project = "' + project + '" and issuetype = "' + issuetype + '" and ' +
-                'updated > "' + since.replace('T', ' ')[:16] + '" order by updated asc')
-        return (Issue(self, r) for r in result['issues'])
+    def updatedIssues(self, projectIssuetypeTuples, since):
+        jql = ' and '.join('(project = "' + project + '" and issuetype = "' + issuetype + '")'
+                for project, issuetype in projectIssuetypeTuples)
+        jql += ' and updated > "' + since.replace('T', ' ')[:16] + '" order by updated asc'
+
+        return (Issue(self, r) for r in self.get('search', jql = jql)['issues'])
 
     def issuetype(self, name):
         for issuetype in self.get('issuetype'):
