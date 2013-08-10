@@ -91,9 +91,7 @@ as Log Entry Types on their API documentation [1].
 Current action configuration will probably fit to your usecase. See the
 default configuration.
 
-status              Incident status or statuses to filter actions,
-                    incidents with a different current status than
-                    the ones in list would not be processed (optional),
+status              Incident status after the action action (optional),
                     incidents will be updated by this field so it is
                     required with "issuestatus"
 

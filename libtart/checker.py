@@ -71,16 +71,13 @@ class PagerDutyJira:
         if not self.__actionConfig.has_section(logEntry['type']):
             return
 
-        incident = logEntry.incident()
-
-        if not self.__actionConfig.filter(logEntry['type'], 'status', incident['status']):
-            return
-
         projectKey = self.__serviceConfig.get(logEntry['service']['name'], 'project')
         issuetypeName = self.__serviceConfig.get(logEntry['service']['name'], 'type')
+        incident = logEntry.incident()
         issue = self.__findIssue(projectKey, issuetypeName, incident['trigger_summary_data'])
 
-        if not issue:
+        '''Do not create issues for incidents already resolved on the PagerDuty. It is too late for them.'''
+        if not issue and incident['status'] != 'resolved':
             if self.__actionConfig.check(logEntry['type'], 'create'):
                 self.__jira.createIssue(project = {'key': projectKey},
                                         issuetype = self.__jira.issuetype(issuetypeName),
