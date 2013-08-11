@@ -58,12 +58,17 @@ class JSONAPI:
 
     def __makeRequest(self, request):
         from urllib.request import urlopen
-        from urllib.error import URLError
+        from urllib.error import HTTPError
 
         try:
             response = urlopen(request)
-        except URLError as error:
+        except HTTPError as error:
             response = error
+            print(request.get_method() + ' ' + request.get_full_url() + '\n')
+            print(response.info())
+            if request.has_data():
+                print(request.get_data().decode('utf-8') + '\n')
+            print(response.read().decode('utf-8'))
             raise
         finally:
             if self.__syslog:
