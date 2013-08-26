@@ -44,21 +44,20 @@ class PagerDutyJira:
 
     def checkJira(self):
         with TimestampDatabase(self.checkJiraTimestampFile) as database:
-            incidentsToUpdate = []
-
             for issue in self.__jira.updatedIssues(self.__serviceConfig.sectionValues('project', 'type'),
                                                    database.read()):
                 for remotelink in issue.remotelinks():
                     for action in self.__actionConfig.sections():
-                        if self.__actionConfig.filter(action, 'issuestatus', issue['fields']['status']['name']):
-                            status = self.__actionConfig.get(action, 'status')
-                            incident = self.__pagerDuty.getIncident(remotelink['globalId'])
+                        status = self.__actionConfig.get(action, 'status')
+                        incident = self.__pagerDuty.getIncident(remotelink['globalId'])
 
-                            if incident['status'] not in (status, 'resolved'):
-                                incidentsToUpdate.append({'id': incident['id'], 'status': status})
+                        if incident['status'] not in (status, 'resolved'):
+                            if (self.__actionConfig.filter(action, 'issuestatus',
+                                                          issue['fields']['status']['name'])
+                                    or self.__actionConfig.filter(action, 'issuepriority',
+                                                                  issue['fields']['priority']['name'])):
+                                incident.put(action)
 
-            if incidentsToUpdate:
-                self.__pagerDuty.putIncidents(incidents = incidentsToUpdate)
                 database.write(issue['fields']['updated'])
 
     def __processLogEntry(self, logEntry):

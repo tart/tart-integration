@@ -116,6 +116,11 @@ issuestatus         Issue status or statuses to update the incidents,
                     "reassign" actions as only they are allowed on
                     the PagerDuty (optional)
 
+issuepriority       Issue priority or priorities to update the incidents,
+                    it will only work for "acknowledge", "resolve" and
+                    "reassign" actions as only they are allowed on
+                    the PagerDuty (optional)
+
 [1] http://developer.pagerduty.com/documentation/rest/log_entries/show
 
 

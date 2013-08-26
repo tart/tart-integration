@@ -33,7 +33,7 @@ class JiraClient(JSONAPI):
         jql += ' and updated > "' + since.replace('T', ' ')[:16] + '" order by updated asc'
 
         return (Issue(self, r) for r in self.get('search', jql = jql, maxResults = self.maxUpdatedIssues,
-                                                 fields = 'key,updated,status')['issues'])
+                                                 fields = 'key,updated,status,priority')['issues'])
 
     def issuetype(self, name):
         for issuetype in self.get('issuetype'):
