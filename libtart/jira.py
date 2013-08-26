@@ -21,16 +21,19 @@ class JiraClient(JSONAPI):
     def searchIssue(self, project, issuetype, summary):
         '''Search for name in the issue summaries which are not closed, return the one updated last.'''
         result = self.get('search', jql = 'project = "' + project + '" and issuetype = "' + issuetype + '" and ' +
-                'summary ~ "' + summary + '" and status != Closed order by updated', maxResults = '1', fields= 'key')
+                'summary ~ "' + summary + '" and status != Closed order by updated', maxResults = '1', fields = 'key')
         if result['issues']:
             return Issue(self, result['issues'][0])
+
+    maxUpdatedIssues = 100
 
     def updatedIssues(self, projectIssuetypeTuples, since):
         jql = ' and '.join('(project = "' + project + '" and issuetype = "' + issuetype + '")'
                 for project, issuetype in projectIssuetypeTuples)
         jql += ' and updated > "' + since.replace('T', ' ')[:16] + '" order by updated asc'
 
-        return (Issue(self, r) for r in self.get('search', jql = jql)['issues'])
+        return (Issue(self, r) for r in self.get('search', jql = jql, maxResults = self.maxUpdatedIssues,
+                                                 fields = 'key,updated,status')['issues'])
 
     def issuetype(self, name):
         for issuetype in self.get('issuetype'):
@@ -72,5 +75,4 @@ class Issue(dict):
 class Transition(dict):
     def __str__(self):
         return self['name']
-
 

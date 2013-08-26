@@ -18,7 +18,7 @@
 from .jira import JiraClient, Issue
 from .pagerduty import PagerDutyClient
 from .configuration import ConfigParser
-from .database import SingleUserDatabase
+from .database import TimestampDatabase
 
 class PagerDutyJira:
     def __init__(self):
@@ -29,39 +29,37 @@ class PagerDutyJira:
         self.__serviceConfig = ConfigParser('service.conf')
         self.__userConfig = ConfigParser('user.conf')
 
-    databaseFile = '/tmp/tart-integration'
+    checkPagerDutyTimestampFile = '/tmp/tart-integration.pagerduty.ts'
 
-    def check(self):
-        with SingleUserDatabase(self.databaseFile) as database:
-            if not database.read():
-                from datetime import datetime
-                database.write(datetime.utcnow().isoformat())
-            since = database.read()
-
-            for logEntry in self.__pagerDuty.logEntries(since):
+    def checkPagerDuty(self):
+        with TimestampDatabase(self.checkPagerDutyTimestampFile) as database:
+            for logEntry in self.__pagerDuty.logEntries(database.read()):
                 if 'notification' in logEntry and logEntry['notification']['status'] == 'in_progress':
                     '''Stop progress for now to buy time.'''
                     break
                 self.__processLogEntry(logEntry)
                 database.write(logEntry['created_at'])
 
-            self.__checkUpdatedIssues(since)
+    checkJiraTimestampFile = '/tmp/tart-integration.jira.ts'
 
-    def __checkUpdatedIssues(self, since):
-        incidentsToUpdate = []
+    def checkJira(self):
+        with TimestampDatabase(self.checkJiraTimestampFile) as database:
+            incidentsToUpdate = []
 
-        for issue in self.__jira.updatedIssues(self.__serviceConfig.sectionValues('project', 'type'), since):
-            for remotelink in issue.remotelinks():
-                for action in self.__actionConfig.sections():
-                    if self.__actionConfig.filter(action, 'issuestatus', issue['fields']['status']['name']):
-                        status = self.__actionConfig.get(action, 'status')
-                        incident = self.__pagerDuty.getIncident(remotelink['globalId'])
+            for issue in self.__jira.updatedIssues(self.__serviceConfig.sectionValues('project', 'type'),
+                                                   database.read()):
+                for remotelink in issue.remotelinks():
+                    for action in self.__actionConfig.sections():
+                        if self.__actionConfig.filter(action, 'issuestatus', issue['fields']['status']['name']):
+                            status = self.__actionConfig.get(action, 'status')
+                            incident = self.__pagerDuty.getIncident(remotelink['globalId'])
 
-                        if incident['status'] not in (status, 'resolved'):
-                            incidentsToUpdate.append({'id': incident['id'], 'status': status})
+                            if incident['status'] not in (status, 'resolved'):
+                                incidentsToUpdate.append({'id': incident['id'], 'status': status})
 
-        if incidentsToUpdate:
-            self.__pagerDuty.putIncidents(incidents = incidentsToUpdate)
+            if incidentsToUpdate:
+                self.__pagerDuty.putIncidents(incidents = incidentsToUpdate)
+                database.write(issue['fields']['updated'])
 
     def __processLogEntry(self, logEntry):
         '''Process incidents with the log entry and the incident related to the log entry.'''

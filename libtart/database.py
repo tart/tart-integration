@@ -20,8 +20,10 @@ import fcntl
 
 class Timeout (Exception): pass
 
-class SingleUserDatabase:
-    '''Database to read and write only one value; block everything when used.'''
+class TimestampDatabase:
+    '''Database to read and write only one timestamp in ISO format. Allow single user by block the file when used.
+    Set SIGALRM to enter the database. Initilize the database implicitly with current timestamp on first read.'''
+
     __enterTimeoutSeconds = 10
     __openTimeoutSeconds = 300
 
@@ -41,7 +43,12 @@ class SingleUserDatabase:
 
     def read(self):
         self.__pointer.seek(0)
-        return self.__pointer.read().strip()
+        value = self.__pointer.read().strip()
+        if not value:
+            from datetime import datetime
+            value = datetime.utcnow().isoformat()
+            self.write(value)
+        return value
 
     def write(self, value):
         self.__pointer.seek(0)

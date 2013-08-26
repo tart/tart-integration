@@ -32,7 +32,7 @@ class JSONAPI:
                 for item in value:
                     yield (key + '[]', quote_plus(item))
             else:
-                yield (key, quote_plus(value))
+                yield (key, quote_plus(str(value)))
 
     def __request(self, *arguments, **parameters):
         from urllib.request import Request

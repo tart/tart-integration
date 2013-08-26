@@ -1,8 +1,11 @@
-from ..jira import JiraClient
+from libtart.jira import JiraClient
+from configparser import SafeConfigParser
+from datetime import date
 
 configParser = SafeConfigParser()
-configParser.read('service.conf')
+configParser.read('api.conf')
 
 jira = JiraClient(**dict(configParser.items('Jira')))
-jira.lastIssueBySummary('loadbalancer.tart.local HTTP CRITICAL')
+jira.searchIssue('TSS', 'System Problem', 'loadbalancer.tart.local')
+jira.updatedIssues([('TSS', 'System Problem')], date.today().isoformat())
 

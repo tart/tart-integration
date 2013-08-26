@@ -3,5 +3,6 @@
 from libtart.checker import PagerDutyJira
 
 checker = PagerDutyJira()
-checker.check()
+checker.checkPagerDuty()
+checker.checkJira()
 
