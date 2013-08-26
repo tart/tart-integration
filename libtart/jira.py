@@ -44,33 +44,33 @@ class JiraClient(JSONAPI):
         return self.post('issue', fields = fields)
 
 class Issue(dict):
-    def __init__(self, jiraClient, properties):
-        self.__jiraClient = jiraClient
+    def __init__(self, client, properties):
+        self.__client = client
         dict.__init__(self, properties)
 
     def __str__(self):
         return self['key']
 
     def remotelinks(self):
-        return self.__jiraClient.get('issue', self['key'], 'remotelink')
+        return self.__client.get('issue', self['key'], 'remotelink')
 
     def transition(self, name):
-        for transition in self.__jiraClient.get('issue', self['key'], 'transitions')['transitions']:
+        for transition in self.__client.get('issue', self['key'], 'transitions')['transitions']:
             if transition['name'] == name:
                 return Transition(transition)
 
     def transit(self, transition, commentBody):
-        return self.__jiraClient.post('issue', self['key'], 'transitions', transition = transition,
+        return self.__client.post('issue', self['key'], 'transitions', transition = transition,
                         update = {'comment': [{'add': {'body': commentBody}}]})
 
     def addRemotelink(self, globalId, **parameters):
-        return self.__jiraClient.post('issue', self['key'], 'remotelink', globalId = globalId, object = parameters)
+        return self.__client.post('issue', self['key'], 'remotelink', globalId = globalId, object = parameters)
 
     def addComment(self, body):
-        return self.__jiraClient.post('issue', self['key'], 'comment', body = body)
+        return self.__client.post('issue', self['key'], 'comment', body = body)
 
     def updateAssignee(self, name):
-        return self.__jiraClient.put('issue', self['key'], 'assignee', name = name)
+        return self.__client.put('issue', self['key'], 'assignee', name = name)
 
 class Transition(dict):
     def __str__(self):

@@ -112,8 +112,8 @@ comment             Action to add comment to the found issues, comments
                     (default: no)
 
 issuestatus         Issue status or statuses to update the incidents,
-                    it will only work for "acknowledge" and "resolve"
-                    actions as they are the only actions on
+                    it will only work for "acknowledge", "resolve" and
+                    "reassign" actions as only they are allowed on
                     the PagerDuty (optional)
 
 [1] http://developer.pagerduty.com/documentation/rest/log_entries/show

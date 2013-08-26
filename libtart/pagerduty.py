@@ -17,26 +17,34 @@
 
 from .api import JSONAPI
 
-class Incident(dict):
-    def __str__(self):
-        return str(self['id'])
-
-class LogEntry(dict):
-    def __str__(self):
-        return str(self['id'])
-
-    def incident(self):
-        return Incident(self['incident'])
-
 class PagerDutyClient(JSONAPI):
     def logEntries(self, since):
         '''Get log entries. Return them reverse ordered as they come with right descending order.'''
         logEntries = self.get('log_entries', since=since, include=['incident', 'channel', 'service'])['log_entries']
-        return (LogEntry(item) for item in reversed(logEntries) if item['created_at'] > since)
+        return (LogEntry(self, item) for item in reversed(logEntries) if item['created_at'] > since)
 
-    def getIncitent(self, incidentId):
-        return Incident(self.get('incidents', incidentId))
+    def getIncident(self, incidentId):
+        return Incident(self, self.get('incidents', incidentId))
 
-    def putIncidents(self, **parameters):
-        return self.put('incidents', **parameters)
+class Incident(dict):
+    def __init__(self, client, properties):
+        self.__client = client
+        dict.__init__(self, properties)
+
+    def __str__(self):
+        return str(self['id'])
+
+    def put(self, action):
+        self.__client.put('incidents', self['id'], action)
+
+class LogEntry(dict):
+    def __init__(self, client, properties):
+        self.__client = client
+        dict.__init__(self, properties)
+
+    def __str__(self):
+        return str(self['id'])
+
+    def incident(self):
+        return Incident(self.__client, self['incident'])
 
