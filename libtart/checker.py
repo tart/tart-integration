@@ -79,14 +79,16 @@ class PagerDutyJira:
         incident = logEntry.incident()
         issue = self.__findIssue(projectKey, issuetypeName, incident['trigger_summary_data'])
 
-        '''Do not create issues for incidents already resolved on the PagerDuty. It is too late for them.'''
-        if not issue and incident['status'] != 'resolved':
-            if self.__actionConfig.check(logEntry['type'], 'create'):
-                self.__jira.createIssue(project = {'key': projectKey},
-                                        issuetype = self.__jira.issuetype(issuetypeName),
-                                        summary = self.__issueSummary(incident['trigger_summary_data']),
-                                        description = self.__description(logEntry['channel']),
-                                        assignee = {'name': self.__usernameFromEmail(incident['assigned_to_user']['email'])})
+        if not issue:
+            if incident['status'] != 'resolved':
+                '''Do not create issues for incidents already resolved on the PagerDuty. It is too late for them.'''
+
+                if self.__actionConfig.check(logEntry['type'], 'create'):
+                    self.__jira.createIssue(project = {'key': projectKey},
+                            issuetype = self.__jira.issuetype(issuetypeName),
+                            summary = self.__issueSummary(incident['trigger_summary_data']),
+                            description = self.__description(logEntry['channel']),
+                            assignee = {'name': self.__usernameFromEmail(incident['assigned_to_user']['email'])})
         else:
             if self.__actionConfig.has_option(logEntry['type'], 'transition'):
                 transition = issue.transition(self.__actionConfig.get(logEntry['type'], 'transition'))
