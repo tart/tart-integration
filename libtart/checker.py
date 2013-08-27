@@ -48,10 +48,9 @@ class PagerDutyJira:
                                                    database.read()):
                 for remotelink in issue.remotelinks():
                     for action in self.__actionConfig.sections():
-                        status = self.__actionConfig.get(action, 'status')
                         incident = self.__pagerDuty.getIncident(remotelink['globalId'])
 
-                        if incident['status'] not in (status, 'resolved'):
+                        if incident['status'] not in (self.__incidentStatus(action), 'resolved'):
                             if (self.__actionConfig.filter(action, 'issuestatus',
                                                           issue['fields']['status']['name'])
                                     or self.__actionConfig.filter(action, 'issuepriority',
@@ -59,6 +58,13 @@ class PagerDutyJira:
                                 incident.put(action)
 
                 database.write(issue['fields']['updated'])
+
+    def __incidentStatus(self, action):
+        if action == 'resolve':
+            return 'resolved'
+        if action == 'acknowledge':
+            return 'acknowledged'
+        return 'triggered'
 
     def __processLogEntry(self, logEntry):
         '''Process incidents with the log entry and the incident related to the log entry.'''
