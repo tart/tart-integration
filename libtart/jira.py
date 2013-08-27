@@ -28,9 +28,9 @@ class JiraClient(JSONAPI):
     maxUpdatedIssues = 100
 
     def updatedIssues(self, projectIssuetypeTuples, since):
-        jql = ' and '.join('(project = "' + project + '" and issuetype = "' + issuetype + '")'
+        jql = '(' + ' or '.join('(project = "' + project + '" and issuetype = "' + issuetype + '")'
                 for project, issuetype in projectIssuetypeTuples)
-        jql += ' and updated > "' + since.replace('T', ' ')[:16] + '" order by updated asc'
+        jql += ') and updated > "' + since.replace('T', ' ')[:16] + '" order by updated asc'
 
         return (Issue(self, r) for r in self.get('search', jql = jql, maxResults = self.maxUpdatedIssues,
                                                  fields = 'key,updated,status,priority')['issues'])
