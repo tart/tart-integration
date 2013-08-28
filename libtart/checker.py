@@ -48,16 +48,20 @@ class PagerDutyJira:
                                                    database.read()):
                 for remotelink in issue.remotelinks():
                     for action in self.__actionConfig.sections():
-                        incident = self.__pagerDuty.getIncident(remotelink['globalId'])
+                        if self.__filterActionForIssue(action, issue):
+                            incident = self.__pagerDuty.getIncident(remotelink['globalId'])
 
-                        if incident['status'] not in (self.__incidentStatus(action), 'resolved'):
-                            if (self.__actionConfig.filter(action, 'issuestatus',
-                                                          issue['fields']['status']['name'])
-                                    or self.__actionConfig.filter(action, 'issuepriority',
-                                                                  issue['fields']['priority']['name'])):
+                            if incident['status'] not in (self.__incidentStatus(action), 'resolved'):
                                 incident.put(action)
 
                 database.write(issue['fields']['updated'])
+
+    def __filterActionForIssue(self, action, issue):
+        if self.__actionConfig.filter(action, 'issuestatus', issue['fields']['status']['name']):
+            return True
+        if self.__actionConfig.filter(action, 'issuepriority', issue['fields']['priority']['name']):
+            return True
+        return False
 
     def __incidentStatus(self, action):
         if action == 'resolve':
