@@ -60,6 +60,7 @@ class JSONAPI:
         from urllib.request import urlopen
         from urllib.error import HTTPError
 
+        response = None
         try:
             response = urlopen(request)
         except HTTPError as error:
@@ -74,7 +75,10 @@ class JSONAPI:
         finally:
             if self.__syslog:
                 from syslog import syslog
-                syslog(request.get_method() + ' ' + request.get_full_url() + ' ' + str(response.getcode()))
+                if response:
+                    syslog(request.get_method() + ' ' + request.get_full_url() + ' ' + str(response.getcode()))
+                else:
+                    syslog(request.get_method() + ' ' + request.get_full_url() + ' no response')
 
         with response:
             try:
