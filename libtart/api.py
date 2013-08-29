@@ -69,6 +69,7 @@ class JSONAPI:
             if request.has_data():
                 print(request.get_data().decode('utf-8') + '\n')
             print(response.read().decode('utf-8'))
+            print(('\n' * 2) + ('=' * 50) + '\n')
             raise
         finally:
             if self.__syslog:
