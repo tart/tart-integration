@@ -24,6 +24,7 @@ class PagerDutyClient(JSONAPI):
         return (LogEntry(self, item) for item in reversed(logEntries) if item['created_at'] > since)
 
     def getIncident(self, incidentId):
+        assert len(incidentId) > 6
         return Incident(self, self.get('incidents', incidentId))
 
 class Incident(dict):
