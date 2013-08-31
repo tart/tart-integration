@@ -16,6 +16,7 @@
 ##
 
 import json
+import time
 
 class JSONAPI:
     def __init__(self, address, username = None, password = None, token = None, syslog = False, application = None):
@@ -62,6 +63,7 @@ class JSONAPI:
         from urllib.error import HTTPError
 
         response = None
+        startedAt = time.time()
         try:
             response = urlopen(request)
         except HTTPError as error:
@@ -75,13 +77,14 @@ class JSONAPI:
             raise
         finally:
             if self.__syslog:
-                from syslog import syslog
+                message = request.get_method() + ' ' + request.get_full_url()
+                if response:
+                    message += ' response: ' + str(response.getcode())
+                message += ' seconds: ' + str(time.time() - startedAt)
+                import syslog
                 if self.application:
                     syslog.openlog(self.application)
-                if response:
-                    syslog(request.get_method() + ' ' + request.get_full_url() + ' ' + str(response.getcode()))
-                else:
-                    syslog(request.get_method() + ' ' + request.get_full_url() + ' no response')
+                syslog.syslog(message)
 
         with response:
             try:
