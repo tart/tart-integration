@@ -18,12 +18,13 @@
 import json
 
 class JSONAPI:
-    def __init__(self, address, username = None, password = None, token = None, syslog = False):
+    def __init__(self, address, username = None, password = None, token = None, syslog = False, application = None):
         self.__address = address
         self.__username = username
         self.__password = password
         self.__token = token
         self.__syslog = syslog
+        self.application = application
 
     def __encodeParameters(self, **parameters):
         from urllib.parse import quote_plus

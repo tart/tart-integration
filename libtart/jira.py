@@ -52,7 +52,11 @@ class Issue(dict):
         return self['key']
 
     def remotelinks(self):
-        return self.__client.get('issue', self['key'], 'remotelink')
+        for remoteLink in self.__client.get('issue', self['key'], 'remotelink'):
+            if 'application' in remoteLink:
+                if 'type' in remoteLink['application']:
+                    if remoteLink['application']['type'] == self.__client.application:
+                        yield remoteLink
 
     def transition(self, name):
         for transition in self.__client.get('issue', self['key'], 'transitions')['transitions']:
@@ -64,7 +68,9 @@ class Issue(dict):
                         update = {'comment': [{'add': {'body': commentBody}}]})
 
     def addRemotelink(self, globalId, **parameters):
-        return self.__client.post('issue', self['key'], 'remotelink', globalId = globalId, object = parameters)
+        return self.__client.post('issue', self['key'], 'remotelink', globalId = globalId,
+                application = {'type': self.__client.application},
+                object = parameters)
 
     def addComment(self, body):
         return self.__client.post('issue', self['key'], 'comment', body = body)
