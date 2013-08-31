@@ -80,7 +80,8 @@ token               Token for HTTP authentication (optional)
 syslog              Log the API requests to syslog (default: no)
 
 application         Application type to use on remote links on
-                    the Jira (required to find back incidents)
+                    the Jira (required to find back incidents),
+                    also ident for syslog
 
 Application type can also for Issue Link Renderer Plugin Module [1]
 of the Jira.
