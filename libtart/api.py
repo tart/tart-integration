@@ -76,6 +76,8 @@ class JSONAPI:
         finally:
             if self.__syslog:
                 from syslog import syslog
+                if self.application:
+                    syslog.openlog(self.application)
                 if response:
                     syslog(request.get_method() + ' ' + request.get_full_url() + ' ' + str(response.getcode()))
                 else:
