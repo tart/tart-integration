@@ -28,15 +28,19 @@ class TimestampDatabase:
     __openTimeoutSeconds = 300
 
     def __timeoutRaiser(self, *arguments):
+        if not self.__databaseLocked:
+            raise Timeout('Database could not locked.')
         raise Timeout
 
     def __init__(self, filename):
         self.__filename = filename
         signal.signal(signal.SIGALRM, self.__timeoutRaiser)
+        self.__databaseLocked = False
 
     def __enter__(self):
         self.__pointer = open(self.__filename, 'a+')
         signal.alarm(self.__enterTimeoutSeconds)
+        self.__databaseLocked = True
         fcntl.lockf(self.__pointer, fcntl.LOCK_EX) 
         signal.alarm(self.__openTimeoutSeconds)
         return self
