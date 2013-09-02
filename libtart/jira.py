@@ -51,12 +51,13 @@ class Issue(dict):
     def __str__(self):
         return self['key']
 
-    def remotelinks(self):
+    def getUnresolvedRemotelinks(self):
         for remoteLink in self.__client.get('issue', self['key'], 'remotelink'):
             if 'application' in remoteLink:
                 if 'type' in remoteLink['application']:
                     if remoteLink['application']['type'] == self.__client.application:
-                        yield remoteLink
+                        if not remoteLink['object']['status']['resolved']:
+                            yield remoteLink
 
     def transition(self, name):
         for transition in self.__client.get('issue', self['key'], 'transitions')['transitions']:

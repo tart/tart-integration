@@ -46,12 +46,12 @@ class PagerDutyJira:
         with TimestampDatabase(self.checkJiraTimestampFile) as database:
             for issue in self.__jira.updatedIssues(self.__serviceConfig.sectionValues('project', 'type'),
                                                    database.read()):
-                for remotelink in issue.remotelinks():
+                for remotelink in issue.getUnresolvedRemotelinks():
                     for action in self.__actionConfig.sections():
                         if self.__filterActionForIssue(action, issue):
                             incident = self.__pagerDuty.getIncident(remotelink['globalId'])
 
-                            if incident['status'] not in (self.__incidentStatus(action), 'resolved'):
+                            if incident['status'] != self.__incidentStatus(action):
                                 incident.put(action)
 
                 database.write(issue['fields']['updated'])
