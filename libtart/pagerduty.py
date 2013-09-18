@@ -17,9 +17,11 @@
 from .api import JSONAPI
 
 class PagerDutyClient(JSONAPI):
+    includeWithLogEntry = ['incident', 'channel', 'service', 'note']
+
     def logEntries(self, since):
         '''Get log entries. Return them reverse ordered as they come with right descending order.'''
-        logEntries = self.get('log_entries', since=since, include=['incident', 'channel', 'service'])['log_entries']
+        logEntries = self.get('log_entries', since=since, include=self.includeWithLogEntry)['log_entries']
         return (LogEntry(self, item) for item in reversed(logEntries) if item['created_at'] > since)
 
     def getIncident(self, incidentId):

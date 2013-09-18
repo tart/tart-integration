@@ -203,8 +203,6 @@ class PagerDutyJira:
                 body += ' on the website'
             elif logEntry['channel']['type'] == 'nagios':
                 body += ' by the Nagios'
-            elif logEntry['channel']['type'] != 'auto':
-                body += ' by ' + logEntry['channel']['type']
         if 'notification' in logEntry:
             if 'push_notification' in logEntry['notification']['type']:
                 body += ' via push notification'
@@ -217,8 +215,8 @@ class PagerDutyJira:
                     body += ' but nobody answered'
         if 'assigned_user' in logEntry:
             body += ' to [~' + self.__usernameFromEmail(logEntry['assigned_user']['email']) + ']'
-        if 'note' in logEntry and logEntry['note']:
-            body += ' with note: ' + logEntry['note']
 
+        if 'channel' in logEntry and logEntry['channel']['type'] == 'note':
+            return body + ': ' + logEntry['channel']['content']
         return body + '.'
 
