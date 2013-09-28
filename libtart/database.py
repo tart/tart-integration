@@ -33,6 +33,7 @@ class TimestampDatabase:
 
     def __init__(self, filename):
         self.__filename = filename
+        self.__databaseLocked = False
         signal.signal(signal.SIGALRM, self.__timeoutRaiser)
         self.__databaseLocked = False
 
@@ -41,6 +42,7 @@ class TimestampDatabase:
         signal.alarm(self.__enterTimeoutSeconds)
         self.__databaseLocked = True
         fcntl.lockf(self.__pointer, fcntl.LOCK_EX) 
+        self.__databaseLocked = True
         signal.alarm(self.__openTimeoutSeconds)
         return self
 

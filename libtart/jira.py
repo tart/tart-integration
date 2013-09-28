@@ -40,7 +40,7 @@ class JiraClient(JSONAPI):
                 return issuetype
 
     def createIssue(self, **fields):
-        return self.post('issue', fields = fields)
+        return Issue(self.post('issue', fields = fields))
 
 class Issue(dict):
     def __init__(self, client, properties):

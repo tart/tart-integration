@@ -82,17 +82,16 @@ class PagerDutyJira:
         incident = logEntry.incident()
         issue = self.__findIssue(projectKey, issuetypeName, incident['trigger_summary_data'])
 
-        if not issue:
-            if incident['status'] != 'resolved':
-                '''Do not create issues for incidents already resolved on the PagerDuty. It is too late for them.'''
+        if not issue and incident['status'] != 'resolved':
+            '''Do not create issues for incidents already resolved on the PagerDuty. It is too late for them.'''
+            if self.__actionConfig.check(logEntry['type'], 'create'):
+                issue = self.__jira.createIssue(project = {'key': projectKey},
+                        issuetype = self.__jira.issuetype(issuetypeName),
+                        summary = self.__issueSummary(incident['trigger_summary_data']),
+                        description = self.__description(logEntry['channel']),
+                        assignee = {'name': self.__usernameFromEmail(incident['assigned_to_user']['email'])})
 
-                if self.__actionConfig.check(logEntry['type'], 'create'):
-                    self.__jira.createIssue(project = {'key': projectKey},
-                            issuetype = self.__jira.issuetype(issuetypeName),
-                            summary = self.__issueSummary(incident['trigger_summary_data']),
-                            description = self.__description(logEntry['channel']),
-                            assignee = {'name': self.__usernameFromEmail(incident['assigned_to_user']['email'])})
-        else:
+        if issue:
             if self.__actionConfig.has_option(logEntry['type'], 'transition'):
                 transition = issue.transition(self.__actionConfig.get(logEntry['type'], 'transition'))
                 if transition:
@@ -106,8 +105,8 @@ class PagerDutyJira:
 
             if self.__actionConfig.check(logEntry['type'], 'link'):
                 issue.addRemotelink(str(incident), url = incident['html_url'],
-                                    title = 'Incident #' + str(incident['incident_number']),
-                                    status = {'resolved': incident['status'] == 'resolved'})
+                        title = 'Incident #' + str(incident['incident_number']),
+                        status = {'resolved': incident['status'] == 'resolved'})
 
     def __findIssue(self, projectKey, issuetypeName, summary):
         '''Search by the hostname:'''
@@ -204,8 +203,6 @@ class PagerDutyJira:
                 body += ' on the website'
             elif logEntry['channel']['type'] == 'nagios':
                 body += ' by the Nagios'
-            elif logEntry['channel']['type'] != 'auto':
-                body += ' by ' + logEntry['channel']['type']
         if 'notification' in logEntry:
             if 'push_notification' in logEntry['notification']['type']:
                 body += ' via push notification'
@@ -218,8 +215,8 @@ class PagerDutyJira:
                     body += ' but nobody answered'
         if 'assigned_user' in logEntry:
             body += ' to [~' + self.__usernameFromEmail(logEntry['assigned_user']['email']) + ']'
-        if 'note' in logEntry and logEntry['note']:
-            body += ' with note: ' + logEntry['note']
 
+        if 'channel' in logEntry and logEntry['channel']['type'] == 'note':
+            return body + ': ' + logEntry['channel']['content']
         return body + '.'
 
