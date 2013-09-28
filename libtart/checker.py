@@ -14,6 +14,8 @@
 # performance of this software.
 ##
 
+import re
+
 from .jira import JiraClient, Issue
 from .pagerduty import PagerDutyClient
 from .configuration import ConfigParser
@@ -108,20 +110,19 @@ class PagerDutyJira:
                         title = 'Incident #' + str(incident['incident_number']),
                         status = {'resolved': incident['status'] == 'resolved'})
 
-    def __findIssue(self, projectKey, issuetypeName, summary):
-        '''Search by the hostname:'''
-        if 'HOSTNAME' in summary and summary['HOSTNAME']:
-            return self.__jira.searchIssue(projectKey, issuetypeName, summary['HOSTNAME'])
+    issueSummarySplitters = ['\t', ' - ']
 
-        '''Search by the issue key on the subject:'''
-        '''It is usefull for incidents created by Jira emails.'''
-        import re
-        issueKeys = re.findall('\([A-Z]{3,6}-[0-9]{1,6}\)', summary['subject'])
+    def __findIssue(self, projectKey, issuetypeName, summary):
+        issueSummary = self.__issueSummary(summary)
+        for splitter in self.issueSummarySplitters:
+            issueSummary = issueSummary.split(splitter, 1)[0]
+
+        '''First, search by the issue key on the subject. It is usefull for incidents created by Jira emails.
+        Issue type does not matter.'''
+        issueKeys = re.findall(projectKey + '-[0-9]{1,6}\)', summary['subject'])
         if issueKeys:
             return Issue(self.__jira, {'key': issueKeys[0][1:-1]})
-
-        '''Search by the subject:'''
-        return self.__jira.searchIssue(projectKey, issuetypeName, summary['subject'])
+        return self.__jira.searchIssue(projectKey, issuetypeName, issueSummary)
 
     def __issueSummary(self, summary):
         if 'SERVICESTATE' in summary and summary['SERVICESTATE']:
