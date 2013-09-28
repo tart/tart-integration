@@ -143,17 +143,6 @@ project             Key of the project for the issues (required)
 type                Name of the issue type for the issues (required)
 
 
-User Configuration
-------------------
-
-Configuration file named user.conf defines the users for integration.
-It is used to map users on services using different login attributes.
-
-
-email               Email address of the user (default is to use first
-                    part of the address as the username)
-
-
 License
 -------
 

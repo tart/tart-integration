@@ -42,6 +42,12 @@ class JiraClient(JSONAPI):
     def createIssue(self, **fields):
         return Issue(self.post('issue', fields = fields))
 
+    def getUser(self, name):
+        '''According to Jira 6.1 REST API documentation users can be searched by username, name or email.'''
+        users = self.get('user', 'search', username = name, maxResults = 1)
+        if users:
+            return users[0]
+
 class Issue(dict):
     def __init__(self, client, properties):
         self.__client = client
@@ -75,8 +81,8 @@ class Issue(dict):
     def addComment(self, body):
         return self.__client.post('issue', self['key'], 'comment', body = body)
 
-    def updateAssignee(self, name):
-        return self.__client.put('issue', self['key'], 'assignee', name = name)
+    def updateAssignee(self, user):
+        return self.__client.put('issue', self['key'], 'assignee', **user)
 
 class Transition(dict):
     def __str__(self):

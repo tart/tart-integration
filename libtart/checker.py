@@ -28,7 +28,6 @@ class PagerDutyJira:
         self.__pagerDuty = PagerDutyClient(**dict(config.items('PagerDuty')))
         self.__actionConfig = ConfigParser('action.conf')
         self.__serviceConfig = ConfigParser('service.conf')
-        self.__userConfig = ConfigParser('user.conf')
 
     checkPagerDutyTimestampFile = '/tmp/tart-integration.pagerduty.ts'
 
@@ -87,11 +86,13 @@ class PagerDutyJira:
         if not issue and incident['status'] != 'resolved':
             '''Do not create issues for incidents already resolved on the PagerDuty. It is too late for them.'''
             if self.__actionConfig.check(logEntry['type'], 'create'):
-                issue = self.__jira.createIssue(project = {'key': projectKey},
-                        issuetype = self.__jira.issuetype(issuetypeName),
-                        summary = self.__issueSummary(incident['trigger_summary_data']),
-                        description = self.__description(logEntry['channel']),
-                        assignee = {'name': self.__usernameFromEmail(incident['assigned_to_user']['email'])})
+                jiraUser = self.__jira.getUser(incident['assigned_to_user']['email'])
+                if jiraUser:
+                    issue = self.__jira.createIssue(project = {'key': projectKey},
+                            issuetype = self.__jira.issuetype(issuetypeName),
+                            summary = self.__issueSummary(incident['trigger_summary_data']),
+                            description = self.__description(logEntry['channel']),
+                            assignee = jiraUser)
 
         if issue:
             if self.__actionConfig.has_option(logEntry['type'], 'transition'):
@@ -100,7 +101,9 @@ class PagerDutyJira:
                     issue.transit(transition, self.__generateComment(logEntry))
 
             if self.__actionConfig.check(logEntry['type'], 'assign'):
-                issue.updateAssignee(self.__usernameFromEmail(logEntry['assigned_user']['email']))
+                jiraUser = self.__jira.getUser(logEntry['assigned_user']['email'])
+                if jiraUser:
+                    issue.updateAssignee(jiraUser)
 
             if self.__actionConfig.check(logEntry['type'], 'comment'):
                 issue.addComment(self.__generateComment(logEntry))
@@ -119,9 +122,9 @@ class PagerDutyJira:
 
         '''First, search by the issue key on the subject. It is usefull for incidents created by Jira emails.
         Issue type does not matter.'''
-        issueKeys = re.findall(projectKey + '-[0-9]{1,6}\)', summary['subject'])
+        issueKeys = re.findall(projectKey + '-[0-9]{1,6}', issueSummary)
         if issueKeys:
-            return Issue(self.__jira, {'key': issueKeys[0][1:-1]})
+            return Issue(self.__jira, {'key': issueKeys[0]})
         return self.__jira.searchIssue(projectKey, issuetypeName, issueSummary)
 
     def __issueSummary(self, summary):
@@ -130,13 +133,6 @@ class PagerDutyJira:
         if 'HOSTSTATE' in summary and summary['HOSTSTATE']:
             return summary['HOSTNAME'] + ' ' + summary['HOSTSTATE']
         return summary['subject']
-
-    def __usernameFromEmail(self, email):
-        for section in self.__userConfig.sections():
-            if self.__userConfig.has_option(section, 'email'):
-                if self.__userConfig.get(section, 'email') == email:
-                    return section
-        return email.split('@')[0]
 
     def __description(self, channel):
         body = ''
@@ -158,7 +154,7 @@ class PagerDutyJira:
     def __generateComment(self, logEntry):
         '''Subject:'''
         if logEntry['type'] == 'notify':
-            body = '[~' + self.__usernameFromEmail(logEntry['user']['email']) + ']'
+            body = self.__annotation(logEntry['user'])
         else:
             body = 'Incident #' + str(logEntry.incident()['incident_number'])
 
@@ -194,7 +190,7 @@ class PagerDutyJira:
         '''Prepositional Phrase:'''
         if 'agent' in logEntry:
             if logEntry['agent']['type'] == 'user':
-                body += ' by [~' + self.__usernameFromEmail(logEntry['agent']['email']) + ']'
+                body += ' by ' + self.__annotation(logEntry['agent'])
         if 'channel' in logEntry:
             if logEntry['channel']['type'] == 'timeout':
                 body += ' due to timeout'
@@ -215,9 +211,15 @@ class PagerDutyJira:
             if logEntry['notification']['status'] == 'no_answer':
                     body += ' but nobody answered'
         if 'assigned_user' in logEntry:
-            body += ' to [~' + self.__usernameFromEmail(logEntry['assigned_user']['email']) + ']'
+            body += ' to ' + self.__annotation(logEntry['assigned_user'])
 
         if 'channel' in logEntry and logEntry['channel']['type'] == 'note':
             return body + ': ' + logEntry['channel']['content']
         return body + '.'
+
+    def __annotation(self, user):
+        jiraUser = self.__jira.getUser(user['email'])
+        if jiraUser:
+            return '[~' + jiraUser['name'] + ']'
+        return user['name'] + ' <' + user['email'] + '>'
 
