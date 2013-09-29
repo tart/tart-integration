@@ -17,8 +17,8 @@
 import configparser
 
 class ConfigParser(configparser.SafeConfigParser):
-    def __init__(self, filename, *attributes, **paramters):
-        configparser.SafeConfigParser.__init__(self, *attributes, **paramters)
+    def __init__(self, filename, *args, **kwargs):
+        configparser.SafeConfigParser.__init__(self, *args, **kwargs)
         self.read(filename)
 
     def check(self, section, option):

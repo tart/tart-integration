@@ -18,7 +18,7 @@ import json
 import time
 
 class JSONAPI:
-    def __init__(self, address, username = None, password = None, token = None, syslog = False, application = None):
+    def __init__(self, address, username=None, password=None, token=None, syslog=False, application=None):
         self.__address = address
         self.__username = username
         self.__password = password
@@ -26,7 +26,7 @@ class JSONAPI:
         self.__syslog = syslog
         self.application = application
 
-    def __encodeParameters(self, **parameters):
+    def __encodeParameters(self, parameters):
         from urllib.parse import quote_plus
         for key, value in list(parameters.items()):
             if isinstance(value, list):
@@ -35,12 +35,15 @@ class JSONAPI:
             else:
                 yield (key, quote_plus(str(value)))
 
-    def __request(self, *arguments, **parameters):
+    def __request(self, uri, getParameters=None, postParameters=None):
         from urllib.request import Request
-        address = self.__address + '/'.join(arguments)
-        if parameters:
-            address += '?' + '&'.join(key + '=' + value for key, value in self.__encodeParameters(**parameters))
+        address = self.__address + uri
+        if getParameters:
+            address += '?' + '&'.join(key + '=' + value for key, value in self.__encodeParameters(getParameters))
         request = Request(address)
+        if postParameters:
+            request.add_data(json.dumps(postParameters).encode('utf-8'))
+
         if self.__username:
             from base64 import urlsafe_b64encode
             authenticationString = self.__username + ':' + self.__password
@@ -49,12 +52,6 @@ class JSONAPI:
         elif self.__token:
             request.add_header('Authorization', 'Token token=' + self.__token)
         request.add_header('Content-type', 'application/json')
-        return request
-
-    def __requestWithData(self, *arguments, **parameters):
-        '''Create a normal request object with arguments, add parameters to the body instead of the URL.'''
-        request = self.__request(*arguments)
-        request.add_data(json.dumps(parameters).encode('utf-8'))
         return request
 
     def __makeRequest(self, request):
@@ -90,14 +87,14 @@ class JSONAPI:
                 return json.loads(response.readall().decode('utf-8'))
             except ValueError: pass
 
-    def get(self, *arguments, **parameters):
-        return self.__makeRequest(self.__request(*arguments, **parameters))
+    def get(self, uri, parameters=None):
+        return self.__makeRequest(self.__request(uri, parameters))
 
-    def post(self, *arguments, **parameters):
-        return self.__makeRequest(self.__requestWithData(*arguments, **parameters))
+    def post(self, uri, parameters):
+        return self.__makeRequest(self.__request(uri, postParameters=parameters))
 
-    def put(self, *arguments, **parameters):
-        request = self.__requestWithData(*arguments, **parameters)
+    def put(self, uri, parameters=None):
+        request = self.__request(uri, postParameters=parameters)
         request.get_method = lambda: 'PUT'
         return self.__makeRequest(request)
 

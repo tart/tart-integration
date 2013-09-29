@@ -21,12 +21,12 @@ class PagerDutyClient(JSONAPI):
 
     def logEntries(self, since):
         '''Get log entries. Return them reverse ordered as they come with right descending order.'''
-        logEntries = self.get('log_entries', since=since, include=self.includeWithLogEntry)['log_entries']
+        logEntries = self.get('log_entries', {'since': since, 'include': self.includeWithLogEntry})['log_entries']
         return (LogEntry(self, item) for item in reversed(logEntries) if item['created_at'] > since)
 
     def getIncident(self, incidentId):
         assert len(incidentId) > 6
-        return Incident(self, self.get('incidents', incidentId))
+        return Incident(self, self.get('incidents' + '/' + incidentId))
 
 class Incident(dict):
     def __init__(self, client, properties):
@@ -37,7 +37,7 @@ class Incident(dict):
         return str(self['id'])
 
     def put(self, action):
-        self.__client.put('incidents', self['id'], action)
+        self.__client.put('incidents/' + self['id'] + '/' + action)
 
 class LogEntry(dict):
     def __init__(self, client, properties):

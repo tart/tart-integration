@@ -19,32 +19,39 @@ from .api import JSONAPI
 class JiraClient(JSONAPI):
     def searchIssue(self, project, issuetype, summary):
         '''Search for name in the issue summaries which are not closed, return the one updated last.'''
-        result = self.get('search', jql = 'project = "' + project + '" and issuetype = "' + issuetype + '" and ' +
-                'summary ~ "' + summary + '" and status != Closed order by updated', maxResults = '1', fields = 'key')
+        parameters = {}
+        parameters['jql'] = 'project = "' + project + '" and issuetype = "' + issuetype + '" and '
+        parameters['jql'] += 'summary ~ "' + summary + '" and status != Closed order by updated'
+        parameters['maxResults'] = 1
+        parameters['fields'] = 'key'
+
+        result = self.get('search', parameters)
         if result['issues']:
             return Issue(self, result['issues'][0])
 
     maxUpdatedIssues = 100
 
     def updatedIssues(self, projectIssuetypeTuples, since):
-        jql = '(' + ' or '.join('(project = "' + project + '" and issuetype = "' + issuetype + '")'
+        parameters = {}
+        parameters['jql'] = '(' + ' or '.join('(project = "' + project + '" and issuetype = "' + issuetype + '")'
                 for project, issuetype in projectIssuetypeTuples)
-        jql += ') and updated > "' + since.replace('T', ' ')[:16] + '" order by updated asc'
+        parameters['jql'] += ') and updated > "' + since.replace('T', ' ')[:16] + '" order by updated asc'
+        parameters['maxResults'] = self.maxUpdatedIssues
+        parameters['fields'] = 'key,updated,status,priority'
 
-        return (Issue(self, r) for r in self.get('search', jql = jql, maxResults = self.maxUpdatedIssues,
-                                                 fields = 'key,updated,status,priority')['issues'])
+        return (Issue(self, r) for r in self.get('search', parameters)['issues'])
 
     def issuetype(self, name):
         for issuetype in self.get('issuetype'):
             if name == issuetype['name']:
                 return issuetype
 
-    def createIssue(self, **fields):
-        return Issue(self, self.post('issue', fields = fields))
+    def createIssue(self, **kwargs):
+        return Issue(self, self.post('issue', {'fields': kwargs}))
 
     def getUser(self, name):
         '''According to Jira 6.1 REST API documentation users can be searched by username, name or email.'''
-        users = self.get('user', 'search', username = name, maxResults = 1)
+        users = self.get('user/search', {'username': name, 'maxResults': 1})
         if users:
             return users[0]
 
@@ -57,7 +64,7 @@ class Issue(dict):
         return self['key']
 
     def getUnresolvedRemotelinks(self):
-        for remoteLink in self.__client.get('issue', self['key'], 'remotelink'):
+        for remoteLink in self.__client.get('issue/' + self['key'] + '/remotelink'):
             if 'application' in remoteLink:
                 if 'type' in remoteLink['application']:
                     if remoteLink['application']['type'] == self.__client.application:
@@ -65,24 +72,30 @@ class Issue(dict):
                             yield remoteLink
 
     def transition(self, name):
-        for transition in self.__client.get('issue', self['key'], 'transitions')['transitions']:
+        for transition in self.__client.get('issue/' + self['key'] + '/transitions')['transitions']:
             if transition['name'] == name:
                 return Transition(transition)
 
     def transit(self, transition, commentBody):
-        return self.__client.post('issue', self['key'], 'transitions', transition = transition,
-                        update = {'comment': [{'add': {'body': commentBody}}]})
+        parameters = {}
+        parameters['transition'] = transition
+        parameters['update'] = {'comment': [{'add': {'body': commentBody}}]}
 
-    def addRemotelink(self, globalId, **parameters):
-        return self.__client.post('issue', self['key'], 'remotelink', globalId = globalId,
-                application = {'type': self.__client.application},
-                object = parameters)
+        return self.__client.post('issue/' + self['key'] + '/transitions', parameters)
+
+    def addRemotelink(self, globalId, **kwargs):
+        parameters = {}
+        parameters['globalId'] = globalId
+        parameters['application'] = {'type': self.__client.application}
+        parameters['object'] = kwargs
+
+        return self.__client.post('issue/' + self['key'] + '/remotelink', parameters)
 
     def addComment(self, body):
-        return self.__client.post('issue', self['key'], 'comment', body = body)
+        return self.__client.post('issue/' + self['key'] + '/comment', {'body': body})
 
     def updateAssignee(self, user):
-        return self.__client.put('issue', self['key'], 'assignee', **user)
+        return self.__client.put('issue/' + self['key'] + '/assignee', user)
 
 class Transition(dict):
     def __str__(self):
