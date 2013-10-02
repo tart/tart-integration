@@ -41,7 +41,7 @@ class JSONAPI:
         if getParameters:
             address += '?' + '&'.join(key + '=' + value for key, value in self.__encodeParameters(getParameters))
         request = Request(address)
-        if postParameters:
+        if postParameters is not None:
             request.add_data(json.dumps(postParameters).encode('utf-8'))
 
         if self.__username:
@@ -95,7 +95,7 @@ class JSONAPI:
     def post(self, uri, parameters):
         return self.__makeRequest(self.__request(uri, postParameters=parameters))
 
-    def put(self, uri, parameters=None):
+    def put(self, uri, parameters={}):
         request = self.__request(uri, postParameters=parameters)
         request.get_method = lambda: 'PUT'
         return self.__makeRequest(request)
