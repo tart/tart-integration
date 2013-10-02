@@ -64,8 +64,10 @@ class JSONAPI:
             response = urlopen(request)
         except HTTPError as error:
             response = error
-            print(request.get_method() + ' ' + request.get_full_url() + '\n')
-            print(response.info())
+            print('\n=== Request ===\n\n' + request.get_method() + ' ' + request.get_full_url() + '\n')
+            for key, value in request.header_items():
+                print(key + ': ' + value)
+            print('\n=== Response ===\n\n' + str(response.info()))
             if request.has_data():
                 print(request.get_data().decode('utf-8') + '\n')
             print(response.read().decode('utf-8'))
