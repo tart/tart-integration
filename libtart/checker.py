@@ -134,22 +134,26 @@ class PagerDutyJira:
             return summary['HOSTNAME'] + ' ' + summary['HOSTSTATE']
         return summary['subject']
 
+    descriptionDetails = ('HOSTDISPLAYNAME', 'HOSTALIAS', 'HOSTADDRESS', 'HOSTOUTPUT',
+            'SERVICEDISPLAYNAME', 'SERVICEOUTPUT', 'SERVICECHECKTYPE', 'SERVICEATTEMPT',
+            'SERVICECHECKCOMMAND', 'TOTALSERVICEPROBLEMS', 'SERVICELATENCY',
+            'SERVICENOTES', 'HOSTNOTES')
+
     def __description(self, channel):
         body = ''
-        if channel['type'] == 'nagios':
-            if channel['details']['HOSTALIAS']:
-                body += 'Host alias: ' + channel['details']['HOSTALIAS'] + '\n'
-            body += 'Host address: ' + channel['details']['HOSTADDRESS'] + '\n'
-            body += 'Host output: ' + channel['details']['HOSTOUTPUT'] + '\n'
-            if channel['details']['SERVICEDISPLAYNAME']:
-                body += 'Service name: ' + channel['details']['SERVICEDISPLAYNAME'] + '\n'
-            if channel['details']['SERVICEOUTPUT']:
-                body += 'Service output: ' + channel['details']['SERVICEOUTPUT'] + '\n'
-            if channel['details']['SERVICENOTES']:
-                body += 'Note: ' + channel['details']['SERVICENOTES'] + '\n'
-            elif channel['details']['HOSTNOTES']:
-                body += 'Note: ' + channel['details']['HOSTNOTES'] + '\n'
+        for detail in self.descriptionDetails:
+            if detail in channel['details'] and channel['details'][detail]:
+                body += ' '.join(self.__wordsOfDetail(detail.strip('_ ').lower())).capitalize() + ': '
+                body += channel['details'][detail] + '\n'
         return body
+
+    detailWords = 'host', 'service', 'display', 'check', 'total'
+
+    def __wordsOfDetail(self, detail):
+        for word in self.detailWords:
+            if detail[:len(word)] == word:
+                return [word] + self.__wordsOfDetail(detail[len(word):])
+        return [detail]
 
     def __generateComment(self, logEntry):
         '''Subject:'''
