@@ -85,14 +85,19 @@ class PagerDutyJira:
 
         if not issue and incident['status'] != 'resolved':
             '''Do not create issues for incidents already resolved on the PagerDuty. It is too late for them.'''
+
             if self.__actionConfig.check(logEntry['type'], 'create'):
+                fields = {}
+                fields['project'] = {'key': projectKey}
+                fields['issuetype'] = self.__jira.issuetype(issuetypeName)
+                fields['summary'] = self.__issueSummary(incident['trigger_summary_data'])
+                fields['description'] = self.__description(logEntry['channel'])
+
                 jiraUser = self.__jira.getUser(incident['assigned_to_user']['email'])
                 if jiraUser:
-                    issue = self.__jira.createIssue(project = {'key': projectKey},
-                            issuetype = self.__jira.issuetype(issuetypeName),
-                            summary = self.__issueSummary(incident['trigger_summary_data']),
-                            description = self.__description(logEntry['channel']),
-                            assignee = jiraUser)
+                    fields['assignee'] = jiraUser
+
+                issue = self.__jira.createIssue(fields)
 
         if issue:
             if self.__actionConfig.has_option(logEntry['type'], 'transition'):

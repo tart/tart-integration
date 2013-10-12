@@ -46,8 +46,8 @@ class JiraClient(JSONAPI):
             if name == issuetype['name']:
                 return issuetype
 
-    def createIssue(self, **kwargs):
-        return Issue(self, self.post('issue', {'fields': kwargs}))
+    def createIssue(self, fields):
+        return Issue(self, self.post('issue', {'fields': fields}))
 
     def getUser(self, name):
         '''According to Jira 6.1 REST API documentation users can be searched by username, name or email.'''
