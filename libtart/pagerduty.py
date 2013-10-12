@@ -26,10 +26,14 @@ class PagerDutyClient(JSONAPI):
         for item in reversed(logEntries):
             if item['created_at'] > since:
                 '''Double check the date to filter out equals.'''
+                logEntry = LogEntry(self, item)
 
-                if not self.username or item['agent']['type'] != 'user' or item['agent']['email'] != self.username:
+                user = logEntry.user()
+                if self.username and user and user['email'] == self.username:
                     '''Filter out actions by ourself.'''
-                    yield LogEntry(self, item)
+                    continue
+
+                yield logEntry
 
     def getIncident(self, incidentId):
         assert len(incidentId) > 6
@@ -56,4 +60,8 @@ class LogEntry(dict):
 
     def incident(self):
         return Incident(self.__client, self['incident'])
+
+    def user(self):
+        if 'agent' in self and self['agent']['type'] == 'user':
+            return self['agent']
 

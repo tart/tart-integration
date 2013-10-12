@@ -201,9 +201,8 @@ class PagerDutyJira:
             body += ' ' + logEntry['type'] + 'ed'
 
         '''Prepositional Phrase:'''
-        if 'agent' in logEntry:
-            if logEntry['agent']['type'] == 'user':
-                body += ' by ' + self.__annotation(logEntry['agent'])
+        if logEntry.user():
+            body += ' by ' + self.__annotation(logEntry.user())
         if 'channel' in logEntry:
             if logEntry['channel']['type'] == 'timeout':
                 body += ' due to timeout'
@@ -234,5 +233,6 @@ class PagerDutyJira:
         jiraUser = self.__jira.getUser(user['email'])
         if jiraUser:
             return '[~' + jiraUser['name'] + ']'
+
         return user['name'] + ' <' + user['email'] + '>'
 
