@@ -1,4 +1,6 @@
-Currently only PagerDuty and Jira integration supported.
+Currently only PagerDuty and Jira integration supported. The script
+will check both PagerDuty and Jira based on the configurations.
+Configurations explained below.
 
 
 Dependencies
@@ -12,7 +14,7 @@ Usage
 
 Configure PagerDuty:
 
-* Generate an API key or create an user if you like incidents to
+* Generate an API key or create an user if you want incidents to
   be updated.
 
 * Modify the API configuration file explained below.
@@ -32,8 +34,6 @@ Configure Jira to trigger incidents with email (optional):
 
 * Give the same email address to the user on the Jira.
 
-* Add the service to the service configuration explained below.
-
 * Set the Jira email type to plain text on the user preferences.
 
 * Make sure "Do not notify me" choosed for "My changes" option
@@ -41,6 +41,9 @@ Configure Jira to trigger incidents with email (optional):
 
 * Add email filters to the service to match the project name,
   the issue type and the assignee.
+
+* Add the service to the service configuration explained below
+  to integrate them both ways.
 
 
 Execute the script:
@@ -62,8 +65,8 @@ API Configuration
 -----------------
 
 Configuration file named api.conf defines API connections. Section names
-should match the required applications names. Currently Jira and PagerDuty
-supported.
+should match the required applications names. Currently, Jira and
+PagerDuty are the supported sections. See the example configuration.
 
 address             Root address of the RESTful API (required)
 
@@ -124,7 +127,7 @@ match-priority      Issue priority or priorities to update the incidents
 
 Paramters starting with "match-" are to update incidents on PagerDuty.
 They would only work with "acknowledge", "resolve" and "reassign"
-actions as they are the only methods on the PagerDuty REST API.
+actions as they are the only methods [1] on the PagerDuty REST API.
 A user should be created on PagerDuty, username and password must be
 set on the API configuration for this functionality.
 
