@@ -141,6 +141,9 @@ project             Key of the project for the issues (required)
 
 type                Name of the issue type for the issues (required)
 
+create-priority     Name of the issue priority to create issues
+                    (optional)
+
 
 License
 -------

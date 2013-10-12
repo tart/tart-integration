@@ -46,6 +46,11 @@ class JiraClient(JSONAPI):
             if name == issuetype['name']:
                 return issuetype
 
+    def priority(self, name):
+        for priority in self.get('priority'):
+            if name == priority['name']:
+                return priority
+
     def createIssue(self, fields):
         return Issue(self, self.post('issue', {'fields': fields}))
 

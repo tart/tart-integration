@@ -97,6 +97,10 @@ class PagerDutyJira:
                 if jiraUser:
                     fields['assignee'] = jiraUser
 
+                if self.__serviceConfig.has_option(logEntry['service']['name'], 'create-priority'):
+                    priorityName = self.__serviceConfig.get(logEntry['service']['name'], 'create-priority')
+                    fields['priority'] = self.__jira.priority(priorityName)
+
                 issue = self.__jira.createIssue(fields)
 
         if issue:
