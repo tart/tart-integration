@@ -19,11 +19,11 @@ import time
 
 class JSONAPI:
     def __init__(self, address, username=None, password=None, token=None, syslog=False, application=None):
-        self.__address = address
-        self.__username = username
-        self.__password = password
-        self.__token = token
-        self.__syslog = syslog
+        self.address = address
+        self.username = username
+        self.password = password
+        self.token = token
+        self.syslog = syslog
         self.application = application
 
     def __encodeParameters(self, parameters):
@@ -37,20 +37,20 @@ class JSONAPI:
 
     def __request(self, uri, getParameters=None, postParameters=None):
         from urllib.request import Request
-        address = self.__address + uri
+        address = self.address + uri
         if getParameters:
             address += '?' + '&'.join(key + '=' + value for key, value in self.__encodeParameters(getParameters))
         request = Request(address)
         if postParameters is not None:
             request.add_data(json.dumps(postParameters).encode('utf-8'))
 
-        if self.__username:
+        if self.username:
             from base64 import urlsafe_b64encode
-            authenticationString = self.__username + ':' + self.__password
+            authenticationString = self.username + ':' + self.password
             authenticationString = urlsafe_b64encode(authenticationString.encode('ascii')).decode('ascii')
             request.add_header('Authorization', 'Basic ' + authenticationString)
-        elif self.__token:
-            request.add_header('Authorization', 'Token token=' + self.__token)
+        elif self.token:
+            request.add_header('Authorization', 'Token token=' + self.token)
         request.add_header('Content-type', 'application/json')
         return request
 
@@ -74,7 +74,7 @@ class JSONAPI:
             print(('\n' * 2) + ('=' * 50) + '\n')
             raise
         finally:
-            if self.__syslog:
+            if self.syslog:
                 message = request.get_method() + ' ' + request.get_full_url()
                 if response:
                     message += ' response: ' + str(response.getcode())
