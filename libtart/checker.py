@@ -48,7 +48,7 @@ class PagerDutyJira:
                                                    database.read()):
                 for remotelink in issue.getUnresolvedRemotelinks():
                     for action in self.__actionConfig.sections():
-                        if self.__filterActionForIssue(action, issue):
+                        if self.__matchAction(action, issue):
                             incident = self.__pagerDuty.getIncident(remotelink['globalId'])
 
                             if incident['status'] != self.__incidentStatus(action):
@@ -56,10 +56,10 @@ class PagerDutyJira:
 
                 database.write(issue['fields']['updated'])
 
-    def __filterActionForIssue(self, action, issue):
-        if self.__actionConfig.filter(action, 'issuestatus', issue['fields']['status']['name']):
+    def __matchAction(self, action, issue):
+        if self.__actionConfig.filter(action, 'match-status', issue['fields']['status']['name']):
             return True
-        if self.__actionConfig.filter(action, 'issuepriority', issue['fields']['priority']['name']):
+        if self.__actionConfig.filter(action, 'match-priority', issue['fields']['priority']['name']):
             return True
         return False
 

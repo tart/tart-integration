@@ -116,18 +116,17 @@ comment             Action to add comment to the found issues, comments
                     will be added with transitions independently
                     (default: no)
 
-issuestatus         Issue status or statuses to update the incidents
+match-status        Issue status or statuses to update the incidents
                     (optional)
 
-issuepriority       Issue priority or priorities to update the incidents
+match-priority      Issue priority or priorities to update the incidents
                     (optional)
 
-"issuestatus" and "issuepriority" parameters are to updated incidents
-on PagerDuty based on statuses of the Issues on the Jira. They will
-only work with "acknowledge", "resolve" and "reassign" actions
-as they are the methods on the PagerDuty REST API. A user should be
-created on PagerDuty, username and password must be set on the API
-configuration for the PagerDuty to use that function.
+Paramters starting with "match-" are to update incidents on PagerDuty.
+They would only work with "acknowledge", "resolve" and "reassign"
+actions as they are the only methods on the PagerDuty REST API.
+A user should be created on PagerDuty, username and password must be
+set on the API configuration for this functionality.
 
 [1] http://developer.pagerduty.com/documentation/rest/log_entries/show
 
