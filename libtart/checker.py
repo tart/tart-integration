@@ -44,7 +44,7 @@ class PagerDutyJira:
 
     def checkJira(self):
         with TimestampDatabase(self.checkJiraTimestampFile) as database:
-            for issue in self.__jira.updatedIssues(self.__serviceConfig.sectionValues('project', 'type'),
+            for issue in self.__jira.updatedIssues(self.__serviceConfig.sectionValues('project', 'issuetype'),
                                                    database.read()):
                 for remotelink in issue.getUnresolvedRemotelinks():
                     for action in self.__actionConfig.sections():
@@ -79,7 +79,7 @@ class PagerDutyJira:
             return
 
         projectKey = self.__serviceConfig.get(logEntry['service']['name'], 'project')
-        issuetypeName = self.__serviceConfig.get(logEntry['service']['name'], 'type')
+        issuetypeName = self.__serviceConfig.get(logEntry['service']['name'], 'issuetype')
         incident = logEntry.incident()
         issue = self.__findIssue(projectKey, issuetypeName, incident['trigger_summary_data'])
 
