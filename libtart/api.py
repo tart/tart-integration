@@ -64,15 +64,6 @@ class JSONAPI:
             response = urlopen(request)
         except HTTPError as error:
             response = error
-            print('\n=== Request ===\n\n' + request.get_method() + ' ' + request.get_full_url() + '\n')
-            for key, value in request.header_items():
-                print(key + ': ' + value)
-            print('\n=== Response ===\n\n' + str(response.info()))
-            if request.has_data():
-                print(request.get_data().decode('utf-8') + '\n')
-            print(response.read().decode('utf-8'))
-            print(('\n' * 2) + ('=' * 50) + '\n')
-            raise
         finally:
             if self.syslog:
                 message = request.get_method() + ' ' + request.get_full_url()
@@ -84,19 +75,68 @@ class JSONAPI:
                     syslog.openlog(self.application)
                 syslog.syslog(message)
 
-        with response:
-            try:
-                return json.loads(response.readall().decode('utf-8'))
-            except ValueError: pass
+        return JSONResponse(response)
 
     def get(self, uri, parameters=None):
-        return self.__makeRequest(self.__request(uri, parameters))
+        response = self.__makeRequest(self.__request(uri, parameters))
+        if response.successful():
+            return response.body()
+        response.raiseAsError()
 
     def post(self, uri, parameters):
-        return self.__makeRequest(self.__request(uri, postParameters=parameters))
+        response = self.__makeRequest(self.__request(uri, postParameters=parameters))
+        if response.successful():
+            return response.body()
+        response.raiseAsError()
 
     def put(self, uri, parameters={}):
         request = self.__request(uri, postParameters=parameters)
         request.get_method = lambda: 'PUT'
-        return self.__makeRequest(request)
+        response = self.__makeRequest(request)
+        if response.successful():
+            return response.body()
+        if response.clientError():
+            return False
+        response.raiseAsError()
+
+class JSONResponse:
+    debug = True
+
+    def __init__(self, message):
+        self.__message = message
+
+    def body(self):
+        with self.__message:
+            try:
+                return json.loads(self.__message.read().decode('utf-8'))
+            except ValueError: pass
+
+    def raiseAsError(self):
+        if self.debug:
+            print('\n=== Response ===\n')
+            print(str(self.__message.info()))
+            print(str(self.body()))
+            print(('\n' * 2) + ('=' * 50) + '\n')
+        raise self.__message
+
+    def code(self):
+        return self.__message.getcode()
+
+    def __str__(self):
+        return str(self.__message)
+
+    def information(self):
+        return 100 <= self.code() < 200
+
+    def successful(self):
+        return 200 <= self.code() < 300
+
+    def redirect(self):
+        return 300 <= self.code() < 400
+
+    def clientError(self):
+        return 400 <= self.code() < 500
+
+    def serverError(self):
+        return 500 <= self.code() < 600
 
