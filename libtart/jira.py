@@ -76,19 +76,7 @@ class Issue(dict):
                         if not remoteLink['object']['status']['resolved']:
                             yield remoteLink
 
-    def transition(self, name):
-        for transition in self.__client.get('issue/' + self['key'] + '/transitions')['transitions']:
-            if transition['name'] == name:
-                return Transition(transition)
-
-    def transit(self, transition, commentBody):
-        parameters = {}
-        parameters['transition'] = transition
-        parameters['update'] = {'comment': [{'add': {'body': commentBody}}]}
-
-        return self.__client.post('issue/' + self['key'] + '/transitions', parameters)
-
-    def addRemotelink(self, globalId, **kwargs):
+    def postRemotelink(self, globalId, **kwargs):
         parameters = {}
         parameters['globalId'] = globalId
         parameters['application'] = {'type': self.__client.application}
@@ -96,11 +84,23 @@ class Issue(dict):
 
         return self.__client.post('issue/' + self['key'] + '/remotelink', parameters)
 
-    def addComment(self, body):
+    def getTransition(self, name):
+        for transition in self.__client.get('issue/' + self['key'] + '/transitions')['transitions']:
+            if transition['name'] == name:
+                return Transition(transition)
+
+    def postTransition(self, transition, commentBody):
+        parameters = {}
+        parameters['transition'] = transition
+        parameters['update'] = {'comment': [{'add': {'body': commentBody}}]}
+
+        return self.__client.post('issue/' + self['key'] + '/transitions', parameters)
+
+    def postComment(self, body):
         return self.__client.post('issue/' + self['key'] + '/comment', {'body': body})
 
-    def updateAssignee(self, user):
-        return self.__client.put('issue/' + self['key'] + '/assignee', user)
+    def putAssignee(self, user):
+        self.__client.put('issue/' + self['key'] + '/assignee', user)
 
 class Transition(dict):
     def __str__(self):

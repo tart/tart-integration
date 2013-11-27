@@ -105,20 +105,20 @@ class PagerDutyJira:
 
         if issue:
             if self.__actionConfig.has_option(logEntry['type'], 'transition'):
-                transition = issue.transition(self.__actionConfig.get(logEntry['type'], 'transition'))
+                transition = issue.getTransition(self.__actionConfig.get(logEntry['type'], 'transition'))
                 if transition:
-                    issue.transit(transition, self.__generateComment(logEntry))
+                    issue.postTransition(transition, self.__generateComment(logEntry))
 
             if self.__actionConfig.check(logEntry['type'], 'assign'):
                 jiraUser = self.__jira.getUser(logEntry['assigned_user']['email'])
                 if jiraUser:
-                    issue.updateAssignee(jiraUser)
+                    issue.putAssignee(jiraUser)
 
             if self.__actionConfig.check(logEntry['type'], 'comment'):
-                issue.addComment(self.__generateComment(logEntry))
+                issue.postComment(self.__generateComment(logEntry))
 
             if self.__actionConfig.check(logEntry['type'], 'link'):
-                issue.addRemotelink(str(incident), url = incident['html_url'],
+                issue.postRemotelink(str(incident), url = incident['html_url'],
                         title = 'Incident #' + str(incident['incident_number']),
                         status = {'resolved': incident['status'] == 'resolved'})
 
